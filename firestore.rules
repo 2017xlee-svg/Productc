@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Products collection: Allow public read, and allow create/update/delete
+    match /products/{productId} {
+      allow read, write: if true;
+    }
+
+    // Product Specifications collection
+    match /specifications/{specId} {
+      allow read, write: if true;
+    }
+
+    // Reviews collection
+    match /reviews/{reviewId} {
+      allow read, write: if true;
+    }
+
+    // App Users collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Connection test document
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+
+    // Global default rule for unspecified collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

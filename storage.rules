@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Media attachments (images, PDFs, documents)
+    match /attachments/{fileName} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Offloaded large Markdown reviews and text payloads
+    match /review_payloads/{fileName} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default rule for other storage paths
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

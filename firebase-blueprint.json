@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A consumer tech hardware or lifestyle product for comparison",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier" },
+        "name": { "type": "string", "description": "Product model and commercial name", "maxLength": 200 },
+        "brand": { "type": "string", "description": "Brand manufacturer name", "maxLength": 100 },
+        "tags": { "type": "array", "description": "Category tags associated with product" },
+        "overview": { "type": "string", "description": "Markdown formatted summary overview", "maxLength": 5000 },
+        "pictures": { "type": "array", "description": "Product attachments stored in Firebase Cloud Storage" },
+        "specificationIds": { "type": "array", "description": "Referenced specification document IDs" },
+        "reviewIds": { "type": "array", "description": "Referenced user review document IDs" },
+        "createdTime": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update ISO timestamp" }
+      },
+      "required": ["id", "name", "brand"]
+    },
+    "Specification": {
+      "title": "Specification",
+      "description": "Technical specification attribute row for a product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier" },
+        "productId": { "type": "string", "description": "Parent product ID", "maxLength": 128 },
+        "productTitle": { "type": "string", "description": "Parent product title", "maxLength": 200 },
+        "specName": { "type": "string", "description": "Name of specification attribute", "maxLength": 150 },
+        "details": { "type": "string", "description": "Details or value of specification", "maxLength": 3000 },
+        "unit": { "type": "string", "description": "Unit of measurement (optional)", "maxLength": 50 },
+        "order": { "type": "number", "description": "Sorting display order index" },
+        "pictures": { "type": "array", "description": "Specification diagram or photo attachments stored in Cloud Storage" },
+        "updatedAt": { "type": "string", "description": "Last update ISO timestamp" }
+      },
+      "required": ["id", "specName"]
+    },
+    "UserReview": {
+      "title": "UserReview",
+      "description": "Hands-on feedback and rating for a product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier" },
+        "reviewNumber": { "type": "number", "description": "Sequential review index number" },
+        "body": { "type": "string", "description": "User review text and experience" },
+        "storageUrl": { "type": "string", "description": "Firebase Cloud Storage URL for large markdown review payloads" },
+        "storagePath": { "type": "string", "description": "Firebase Cloud Storage path reference" },
+        "productIds": { "type": "array", "description": "Referenced product IDs" },
+        "productTitles": { "type": "array", "description": "Referenced product names" },
+        "pictures": { "type": "array", "description": "Review photos stored in Firebase Cloud Storage" },
+        "authorName": { "type": "string", "description": "Reviewer name", "maxLength": 100 },
+        "rating": { "type": "number", "description": "Star rating out of 5" },
+        "createdTime": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update ISO timestamp" }
+      },
+      "required": ["id", "body"]
+    },
+    "AppUser": {
+      "title": "AppUser",
+      "description": "Application user profile and role",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier" },
+        "email": { "type": "string", "description": "Email address" },
+        "name": { "type": "string", "description": "Display name", "maxLength": 100 },
+        "role": { "type": "string", "description": "User role: Admin or User" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Collection of products in the comparison catalog"
+    },
+    "/specifications/{specId}": {
+      "schema": { "$ref": "#/entities/Specification" },
+      "description": "Collection of technical specifications linked to products"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/UserReview" },
+      "description": "Collection of user reviews and feedback"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/AppUser" },
+      "description": "Collection of registered application users and roles"
+    }
+  }
+}
