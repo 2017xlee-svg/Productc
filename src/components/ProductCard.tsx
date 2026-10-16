@@ -142,7 +142,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           ) : (
             <div className="mt-3 text-xs text-slate-400 italic py-1">
-              Specifications documented in Teable
+              Specifications documented in catalog
             </div>
           )}
         </div>

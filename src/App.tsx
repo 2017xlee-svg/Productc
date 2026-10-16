@@ -290,7 +290,7 @@ export default function App() {
     ['viture', 'Smartphone', 'IT product', 'Shoe', 'TV', 'Audio', 'Wearable', 'Home appliance'].forEach((t) =>
       tagSet.add(t)
     );
-    database.products.forEach((p) => {
+    (database?.products || []).forEach((p) => {
       p.tags?.forEach((t) => {
         if (t && t.trim()) tagSet.add(t.trim());
       });
@@ -299,7 +299,7 @@ export default function App() {
       if (t && t.trim()) tagSet.add(t.trim());
     });
     return Array.from(tagSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-  }, [database.products, persistedCustomTags]);
+  }, [database?.products, persistedCustomTags]);
 
   // Add Product Handler (Local-First)
   const handleAddProduct = async (productData: {
@@ -440,7 +440,7 @@ export default function App() {
 
   // Delete Review Handler (Local-First + IndexedDB Image Cleanup)
   const handleDeleteReview = async (reviewId: string) => {
-    const reviewToDelete = database.reviews.find((r) => r.id === reviewId);
+    const reviewToDelete = (database?.reviews || []).find((r) => r.id === reviewId);
     const updatedDb = localDeleteReview(database, reviewId);
     setDatabase(updatedDb);
 

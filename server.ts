@@ -2,11 +2,10 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import { fetchRemoteImageBuffer, getFreshTeableUrls } from './server/teableProxy';
-import { checkStorageConnection, uploadBufferToStorage, batchMigrateAllMediaServer, defaultBucket } from './server/storageServer';
+import { fetchRemoteImageBuffer, getFreshTeableUrls } from './server/teableProxy.ts';
+import { checkStorageConnection, uploadBufferToStorage, batchMigrateAllMediaServer, defaultBucket, firebaseConfigData } from './server/storageServer.ts';
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -26,8 +25,8 @@ app.get('/api/info', (req, res) => {
     success: true,
     app: 'ProductCompare Hub',
     databaseType: 'local_first_firestore',
-    projectId: 'fast-xenops-09v0l',
-    databaseId: 'ai-studio-recordcompare-9b5993ac-3307-430e-af50-d0e625993029',
+    projectId: firebaseConfigData.projectId || 'gen-lang-client-0152097172',
+    databaseId: firebaseConfigData.firestoreDatabaseId || 'ai-studio-recordcompare-9b5993ac-3307-430e-af50-d0e625993029',
     firestoreNative: true,
     storageBucket: defaultBucket,
   });
@@ -118,7 +117,7 @@ app.get('/api/media/proxy', async (req, res) => {
 async function startServer() {
   const distPath = path.join(process.cwd(), 'dist');
   const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
-  const isProduction = process.env.NODE_ENV === 'production' || hasDist;
+  const isProduction = process.env.NODE_ENV === 'production' && hasDist;
 
   if (!isProduction) {
     const vite = await createViteServer({
@@ -126,16 +125,60 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    // Fallback for all SPA page requests in development
+    app.use('*', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api')) {
+        return next();
+      }
+      try {
+        const indexPath = path.resolve(process.cwd(), 'index.html');
+        let template = fs.readFileSync(indexPath, 'utf-8');
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        if (vite) vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   } else {
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
+      if (req.originalUrl.startsWith('/api')) {
+        return res.status(404).json({ error: 'Endpoint not found' });
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  const DEFAULT_PORT = 3000;
+  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
+
+  // Primary listener on port 3000
+  const server3000 = app.listen(DEFAULT_PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${DEFAULT_PORT}`);
   });
+  server3000.on('error', (err: any) => {
+    if (err.code !== 'EADDRINUSE') {
+      console.error('Port 3000 error:', err);
+    }
+  });
+
+  // Rollout listener for Cloud Run deployment where process.env.PORT is 8080 or other
+  if (envPort && envPort !== DEFAULT_PORT) {
+    try {
+      const serverEnv = app.listen(envPort, '0.0.0.0', () => {
+        console.log(`Deployment rollout server running on http://0.0.0.0:${envPort}`);
+      });
+      serverEnv.on('error', (err: any) => {
+        if (err.code !== 'EADDRINUSE') {
+          console.warn(`Port ${envPort} warning:`, err.message);
+        }
+      });
+    } catch {
+      // safely ignore
+    }
+  }
 }
 
 startServer();

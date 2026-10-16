@@ -3,7 +3,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'fire
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
-import { fetchRemoteImageBuffer } from './teableProxy';
+import { fetchRemoteImageBuffer } from './teableProxy.ts';
 
 let firebaseConfig: any = {};
 try {
@@ -16,7 +16,8 @@ try {
 }
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const defaultBucket = firebaseConfig.storageBucket || 'fast-xenops-09v0l.firebasestorage.app';
+export const firebaseConfigData = firebaseConfig;
+export const defaultBucket = firebaseConfig.storageBucket || `${firebaseConfig.projectId || 'gen-lang-client-0152097172'}.firebasestorage.app`;
 
 // Firestore instance for cloud sync
 const firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId || 'ai-studio-recordcompare-9b5993ac-3307-430e-af50-d0e625993029');
@@ -37,9 +38,10 @@ export async function checkStorageConnection(bucketName = defaultBucket): Promis
 }> {
   const candidate = bucketName.trim() || defaultBucket;
   const alternates = [
-    'fast-xenops-09v0l.firebasestorage.app',
-    'fast-xenops-09v0l.appspot.com',
-  ];
+    firebaseConfig.storageBucket,
+    `${firebaseConfig.projectId}.firebasestorage.app`,
+    `${firebaseConfig.projectId}.appspot.com`,
+  ].filter(Boolean);
 
   try {
     const storage = getStorageInstance(candidate);

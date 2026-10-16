@@ -326,7 +326,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
             </span>
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Real feedback and benchmark impressions from Teable UserReview table
+            Real feedback and benchmark impressions from reviews catalog
           </p>
         </div>
 
@@ -559,7 +559,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
 
               {/* Footer */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Synchronized from Teable UserReview</span>
+                <span>Verified Community Review</span>
                 <span className="font-medium text-slate-500">
                   {linkedProduct ? `Linked to ${linkedProduct.brand}` : 'General feedback'}
                 </span>
