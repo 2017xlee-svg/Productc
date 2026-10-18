@@ -315,14 +315,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   setFullscreenIndex(selectedImageIdx < imgs.length ? selectedImageIdx : 0);
                   setIsFullscreenOpen(true);
                 }}
-                className="aspect-4/3 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative group cursor-pointer"
+                className="aspect-4/3 sm:aspect-16/10 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center p-2 border border-slate-200 relative group cursor-pointer"
                 title="Click for full screen view"
               >
                 <img
                   src={mainImage}
                   alt={product.name}
                   onError={() => setImgError(true)}
-                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
+                  className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-200"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 flex items-center justify-center transition-colors">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-xs">
@@ -346,7 +346,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <img
                         src={getProductImage(product, idx)}
                         alt={pic.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-0.5 bg-slate-50"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = fallback;
                         }}
@@ -503,7 +503,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                                       <img
                                         src={picSrc}
                                         alt={pic.name || 'Spec image'}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                        className="w-full h-full object-contain p-1 bg-white group-hover:scale-105 transition-transform duration-200"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).src = createSpecPlaceholderSvg(
                                             pic.name || spec.specName,

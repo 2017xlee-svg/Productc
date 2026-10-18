@@ -54,12 +54,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       }`}
     >
       {/* Product Image Area */}
-      <div className="relative aspect-4/3 bg-slate-100 overflow-hidden cursor-pointer" onClick={() => onViewDetails(product)}>
+      <div className="relative aspect-4/3 bg-slate-50/90 flex items-center justify-center p-2 overflow-hidden cursor-pointer" onClick={() => onViewDetails(product)}>
         <img
           src={imageUrl}
           alt={product.name}
           onError={() => setImgError(true)}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
           loading="lazy"
         />
 

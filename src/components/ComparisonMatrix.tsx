@@ -863,12 +863,12 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                         {pictures.map((pic, picIdx) => (
                           <div
                             key={pic.id || picIdx}
-                            className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100"
+                            className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center p-2"
                           >
                             <img
                               src={getAttachmentDisplayUrl(pic, p.name, p.brand)}
                               alt={pic.name || 'Product picture'}
-                              className="w-full h-48 object-cover"
+                              className="w-full h-52 sm:h-64 object-contain"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = createProductPlaceholderSvg(p.name, p.brand);
@@ -1134,7 +1134,7 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                                   <img
                                     src={getAttachmentDisplayUrl(pic, p.name)}
                                     alt={pic.name}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain p-0.5"
                                     referrerPolicy="no-referrer"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).src = createSpecPlaceholderSvg(pic.name, p.name);
@@ -1232,12 +1232,12 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                               {specPictures.map((pic, picIdx) => (
                                 <div
                                   key={pic.id || picIdx}
-                                  className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-100 aspect-4/3"
+                                  className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center aspect-4/3"
                                 >
                                   <img
                                     src={getAttachmentDisplayUrl(pic, p.name)}
                                     alt={pic.name || 'Spec picture'}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain p-1"
                                     referrerPolicy="no-referrer"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).src = createSpecPlaceholderSvg(pic.name, p.name);

@@ -1519,7 +1519,7 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                                     <img
                                       src={getAttachmentDisplayUrl(pic, existingSpec.specName, product.name)}
                                       alt={pic.name || 'Spec picture'}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                      className="w-full h-full object-contain p-0.5 bg-slate-50 group-hover:scale-105 transition-transform duration-200"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).src = createSpecPlaceholderSvg(
                                           pic.name || existingSpec.specName,
