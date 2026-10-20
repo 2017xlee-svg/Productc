@@ -2,8 +2,8 @@ import { INITIAL_DATABASE } from '../data/seedData';
 import { DatabaseState, Product, Specification, UserReview, AppUser, Attachment } from '../types';
 import { saveDatabaseToIndexedDB, loadDatabaseFromIndexedDB } from './indexedDbMedia';
 
-const STORAGE_KEY = 'productcompare_local_database_v3';
-const INITIALIZED_KEY = 'productcompare_initialized_v3';
+const STORAGE_KEY = 'productcompare_local_database_v4';
+const INITIALIZED_KEY = 'productcompare_initialized_v4';
 let memoryDatabaseCache: DatabaseState | null = null;
 
 const DEFAULT_USERS: AppUser[] = [
@@ -84,8 +84,8 @@ export function normalizeDatabaseState(db?: any): DatabaseState {
 
 export function isDefaultSeedDatabase(db: DatabaseState): boolean {
   if (!db || !Array.isArray(db.products) || db.products.length === 0) return false;
-  const seedIds = new Set(['recYentJ81ZnUnxQWBa', 'recQRftAV957mVdyRwD', 'rec16GBDDR5RamBenchmark']);
-  const seedNames = new Set(['aasdf', 'Samsung fold 8']);
+  const seedIds = new Set(['recSonyPx470Benchmark', 'recyjZnFD30NiXoRwjF', 'recQRftAV957mVdyRwD']);
+  const seedNames = new Set(['sony px470', 'Plaud note', 'Samsung fold 8']);
   const hasUserProduct = db.products.some(
     (p) => !seedIds.has(p.id) && !seedNames.has(p.name) && !p.id.startsWith('rec')
   );

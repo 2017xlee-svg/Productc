@@ -29,8 +29,10 @@ import {
   ArrowLeft,
   Database,
   ChevronsUpDown,
+  Eye,
 } from 'lucide-react';
 import { Product, Specification, Attachment } from '../types';
+import { FormattedSpecHtml } from '../utils/formatHtml';
 import {
   getProductImage,
   getFallbackImage,
@@ -58,6 +60,7 @@ interface SmartAddProductProps {
     specName: string;
     details: string;
     unit?: string;
+    isNumeric?: boolean;
     order?: number;
     pictures?: Attachment[];
   }) => Promise<Specification>;
@@ -216,6 +219,8 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
   // Key format: `${productId}__${specName}`
   const [inlineEditKey, setInlineEditKey] = useState<string | null>(null);
   const [inlineSpecName, setInlineSpecName] = useState('');
+  const [inlineUnit, setInlineUnit] = useState('');
+  const [inlineIsNumeric, setInlineIsNumeric] = useState(true);
   const [inlineDetails, setInlineDetails] = useState('');
   const [inlinePictures, setInlinePictures] = useState<Attachment[]>([]);
   const [isUploadingInline, setIsUploadingInline] = useState(false);
@@ -480,6 +485,8 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
     setInlineEditKey(`${product.id}__${specName}`);
     setInlineSpecName(existingSpec ? existingSpec.specName : specName);
     setInlineDetails(existingSpec ? existingSpec.details : '');
+    setInlineUnit(existingSpec?.unit || '');
+    setInlineIsNumeric(existingSpec?.isNumeric !== false);
     setInlinePictures(existingSpec?.pictures || []);
   };
 
@@ -498,6 +505,8 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
         await onUpdateSpecification(existingSpec.id, {
           specName: inlineSpecName.trim() || specName,
           details: inlineDetails.trim(),
+          unit: inlineUnit.trim(),
+          isNumeric: inlineIsNumeric,
           pictures: inlinePictures,
         });
       } else {
@@ -507,6 +516,8 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
           productId: product.id,
           specName: inlineSpecName.trim() || specName,
           details: inlineDetails.trim(),
+          unit: inlineUnit.trim(),
+          isNumeric: inlineIsNumeric,
           pictures: inlinePictures,
           order: prodSpecs.length + 1,
         });
@@ -1395,29 +1406,94 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                         {/* CASE 1: Inline Editing Form is open (Matches sample direct edit 2.PNG) */}
                         {isInlineEditing ? (
                           <div className="bg-sky-50/40 border border-sky-300 rounded-xl p-4 space-y-3.5 mt-1 animate-in fade-in duration-200">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-900 mb-1">
-                                Specification
-                              </label>
-                              <input
-                                type="text"
-                                value={inlineSpecName}
-                                onChange={(e) => setInlineSpecName(e.target.value)}
-                                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500"
-                              />
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <div className="sm:col-span-2">
+                                <label className="block text-xs font-bold text-slate-900 mb-1">
+                                  Specification
+                                </label>
+                                <input
+                                  type="text"
+                                  value={inlineSpecName}
+                                  onChange={(e) => setInlineSpecName(e.target.value)}
+                                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-900 mb-1">
+                                  Unit (optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={inlineUnit}
+                                  onChange={(e) => setInlineUnit(e.target.value)}
+                                  placeholder="e.g. g, mAh, mm"
+                                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500 font-mono"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Is Number / Metric Comparison Switch */}
+                            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs ${
+                                  inlineIsNumeric ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700'
+                                }`}>
+                                  {inlineIsNumeric ? '#' : 'Aa'}
+                                </div>
+                                <div>
+                                  <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span>{inlineIsNumeric ? 'Numeric Comparison' : 'Text / Descriptive Mode'}</span>
+                                    <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded-full ${
+                                      inlineIsNumeric ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'
+                                    }`}>
+                                      {inlineIsNumeric ? 'Number ON' : 'Number OFF'}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500">
+                                    {inlineIsNumeric
+                                      ? 'Enables comparison bar and Best value comparison'
+                                      : 'Preserves multi-line text & formatting without false number comparison'}
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setInlineIsNumeric(!inlineIsNumeric)}
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                                  inlineIsNumeric ? 'bg-indigo-600' : 'bg-slate-300'
+                                }`}
+                              >
+                                <span
+                                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                    inlineIsNumeric ? 'translate-x-4' : 'translate-x-0'
+                                  }`}
+                                />
+                              </button>
                             </div>
 
                             <div>
-                              <label className="block text-xs font-bold text-slate-900 mb-1">
-                                Details
-                              </label>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="block text-xs font-bold text-slate-900">
+                                  Details
+                                </label>
+                                <span className="text-[10px] text-slate-500">Supports newlines, bold & links</span>
+                              </div>
                               <textarea
                                 value={inlineDetails}
                                 onChange={(e) => setInlineDetails(e.target.value)}
-                                placeholder="Leave blank if not known yet"
+                                placeholder="Leave blank if not known yet. Supports newlines, bullet points, and <b>bold</b> tags."
                                 rows={3}
-                                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500 resize-y"
+                                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500 resize-y leading-relaxed font-sans"
                               />
+                              {inlineDetails && (
+                                <div className="mt-2 p-2.5 rounded-lg bg-white border border-slate-200">
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <Eye className="w-3 h-3 text-indigo-600" />
+                                    <span>Real-time Preview</span>
+                                  </div>
+                                  <FormattedSpecHtml content={inlineDetails} className="text-xs text-slate-800" />
+                                </div>
+                              )}
                             </div>
 
                             {/* Specification Pictures */}
@@ -1498,9 +1574,7 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                         ) : existingSpec && existingSpec.details ? (
                           /* CASE 2: Product has this specification data */
                           <div className="space-y-2">
-                            <p className="text-sm text-slate-800 leading-relaxed font-normal">
-                              {existingSpec.details}
-                            </p>
+                            <FormattedSpecHtml content={existingSpec.details} className="text-sm text-slate-800" />
 
                             {/* Pictures thumbnails if any */}
                             {existingSpec.pictures && existingSpec.pictures.length > 0 && (

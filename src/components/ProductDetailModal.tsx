@@ -21,6 +21,7 @@ import {
 import Markdown from 'react-markdown';
 import { Attachment, Product, Specification, UserReview } from '../types';
 import { stripHtmlAndMarkdownToText } from '../utils/upnoteParser';
+import { FormattedSpecHtml } from '../utils/formatHtml';
 import {
   getProductImage,
   getFallbackImage,
@@ -483,7 +484,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                             </div>
                           </td>
                           <td className="p-3 text-slate-700 font-medium">
-                            <div>{spec.details || '—'}</div>
+                            <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
                             {spec.pictures && spec.pictures.length > 0 && (
                               <div className="mt-2.5 flex gap-2.5 flex-wrap items-center">
                                 {spec.pictures.map((pic, pIdx) => {

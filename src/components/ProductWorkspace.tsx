@@ -24,11 +24,13 @@ import {
   X,
   Maximize2,
   Edit3,
+  Eye,
   Loader2,
   Search,
   ChevronLeft,
 } from 'lucide-react';
 import { Attachment } from '../types';
+import { FormattedSpecHtml } from '../utils/formatHtml';
 import { FullscreenImageViewer } from './fullscreen-image-viewer';
 import { createAttachmentFromFile, createAttachmentFromUrl, getCachedObjectUrl } from '../utils/imageCompressor';
 import {
@@ -44,6 +46,7 @@ interface ProductSpecItem {
   name: string;
   details: string;
   unit?: string;
+  isNumeric?: boolean;
   order: number;
   pictures?: Attachment[];
 }
@@ -64,7 +67,7 @@ interface ProductWorkspaceProps {
     tags?: string[];
     overview?: string;
     pictures?: Attachment[];
-    specs?: { id?: string; name: string; details: string; unit?: string; order?: number; pictures?: Attachment[] }[];
+    specs?: { id?: string; name: string; details: string; unit?: string; isNumeric?: boolean; order?: number; pictures?: Attachment[] }[];
   };
   onSaveProduct: (productData: {
     name: string;
@@ -72,7 +75,7 @@ interface ProductWorkspaceProps {
     tags: string[];
     overview: string;
     pictures: Attachment[];
-    specs: { id?: string; name: string; details: string; unit?: string; order?: number; pictures?: Attachment[] }[];
+    specs: { id?: string; name: string; details: string; unit?: string; isNumeric?: boolean; order?: number; pictures?: Attachment[] }[];
   }) => Promise<void>;
   onDeleteProduct?: (productId: string) => Promise<void>;
 }
@@ -278,12 +281,13 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
         name: s.name,
         details: s.details,
         unit: s.unit || '',
+        isNumeric: s.isNumeric !== undefined ? s.isNumeric : (s.unit ? true : undefined),
         order: s.order || idx + 1,
         pictures: s.pictures || [],
       }));
     }
     return [
-      { id: 'spec_1', name: 'New specification', details: '', unit: '', order: 1, pictures: [] },
+      { id: 'spec_1', name: 'New specification', details: '', unit: '', isNumeric: true, order: 1, pictures: [] },
     ];
   });
 
@@ -549,7 +553,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
   };
 
   // Update Specification field
-  const handleUpdateSpecField = (specId: string, field: 'name' | 'details' | 'unit', val: string) => {
+  const handleUpdateSpecField = (specId: string, field: 'name' | 'details' | 'unit' | 'isNumeric', val: any) => {
     setSpecs((prev) =>
       prev.map((s) => (s.id === specId ? { ...s, [field]: val } : s))
     );
@@ -636,6 +640,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
           name: s.name.trim() || `Spec ${idx + 1}`,
           details: s.details.trim(),
           unit: s.unit?.trim() || '',
+          isNumeric: s.isNumeric,
           order: s.order || idx + 1,
           pictures: s.pictures || [],
         })),
@@ -1502,11 +1507,56 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                         ))}
                       </div>
 
-                      {/* Specification Details with Toolbar (IMG_9156.png) */}
+                      {/* Is Number / Metric Comparison Switch */}
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                            spec.isNumeric !== false ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700'
+                          }`}>
+                            {spec.isNumeric !== false ? '#' : 'Aa'}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                              <span>{spec.isNumeric !== false ? 'Numeric Comparison' : 'Text / Descriptive Mode'}</span>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full ${
+                                spec.isNumeric !== false ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'
+                              }`}>
+                                {spec.isNumeric !== false ? 'Number ON' : 'Number OFF'}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              {spec.isNumeric !== false
+                                ? 'Enables numerical comparison bar and Best value logic'
+                                : 'Preserves multi-line text & formatting without false number comparisons'}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateSpecField(spec.id, 'isNumeric', spec.isNumeric === false ? true : false)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                            spec.isNumeric !== false ? 'bg-indigo-600' : 'bg-slate-300'
+                          }`}
+                          title="Toggle numeric comparison vs descriptive text"
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                              spec.isNumeric !== false ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Specification Details with Toolbar & Realtime Preview */}
                       <div className="space-y-1.5">
-                        <label className="block text-[11px] font-semibold text-slate-600">
-                          Specification details
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-semibold text-slate-600">
+                            Specification details
+                          </label>
+                          <span className="text-[10px] text-slate-400">
+                            Supports newlines, bold, italic & links
+                          </span>
+                        </div>
                         <div className="rounded-xl border border-slate-200 overflow-hidden bg-white focus-within:border-slate-800 focus-within:ring-1 focus-within:ring-slate-800 transition-all">
                           {/* Rich Toolbar: B, I, U, S, |, Add link */}
                           <div className="border-b border-slate-200 px-3 py-2 flex items-center gap-4 text-slate-800 text-sm bg-slate-50/70">
@@ -1559,9 +1609,22 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                             onChange={(e) =>
                               handleUpdateSpecField(spec.id, 'details', e.target.value)
                             }
-                            placeholder="Battery life, material, details or <u>Ddfkk</u>..."
+                            placeholder="Details, multi-line notes, or <b>Bold</b> feature..."
                             className="w-full p-3.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none resize-y leading-relaxed font-sans"
                           />
+
+                          {/* Real-Time Live Render Preview */}
+                          {spec.details && (
+                            <div className="border-t border-slate-100 bg-slate-50/80 p-3">
+                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                <Eye className="w-3 h-3 text-indigo-600" />
+                                <span>Real-time Formatted Preview</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs">
+                                <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 

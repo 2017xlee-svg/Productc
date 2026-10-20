@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { X, Layers, Plus, Check, Upload, Image as ImageIcon, Trash2, Loader2, ArrowLeft } from 'lucide-react';
+import { X, Layers, Plus, Check, Upload, Image as ImageIcon, Trash2, Loader2, ArrowLeft, Eye } from 'lucide-react';
 import { Product, Attachment } from '../types';
 import { createAttachmentFromFile, createAttachmentFromUrl } from '../utils/imageCompressor';
 import { getAttachmentDisplayUrl, createSpecPlaceholderSvg } from '../utils/imageFallback';
+import { FormattedSpecHtml } from '../utils/formatHtml';
 
 interface AddSpecModalProps {
   product: Product | null;
@@ -13,6 +14,7 @@ interface AddSpecModalProps {
     specName: string;
     details: string;
     unit?: string;
+    isNumeric?: boolean;
     order: number;
     pictures: Attachment[];
   }) => Promise<void>;
@@ -46,6 +48,7 @@ export const AddSpecModal: React.FC<AddSpecModalProps> = ({
   );
   const [specName, setSpecName] = useState('');
   const [unit, setUnit] = useState('');
+  const [isNumeric, setIsNumeric] = useState(true);
   const [details, setDetails] = useState('');
   const [order, setOrder] = useState<number>(1);
   const [pictures, setPictures] = useState<Attachment[]>([]);
@@ -106,6 +109,7 @@ export const AddSpecModal: React.FC<AddSpecModalProps> = ({
         specName: specName.trim(),
         details: details.trim(),
         unit: unit.trim(),
+        isNumeric,
         order: Number(order) || 1,
         pictures: finalPictures,
       });
@@ -280,19 +284,70 @@ export const AddSpecModal: React.FC<AddSpecModalProps> = ({
             ))}
           </div>
 
+          {/* Is Number / Metric Comparison Switch */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center gap-2.5">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                isNumeric ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {isNumeric ? '#' : 'Aa'}
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>{isNumeric ? 'Numeric Comparison' : 'Text / Descriptive Mode'}</span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full ${
+                    isNumeric ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'
+                  }`}>
+                    {isNumeric ? 'Number ON' : 'Number OFF'}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  {isNumeric
+                    ? 'Enables numerical progress bar and Best value comparison'
+                    : 'Preserves multi-line text & formatting without false number comparison'}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsNumeric(!isNumeric)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                isNumeric ? 'bg-indigo-600' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                  isNumeric ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Details / Value */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Specification Value / Details *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700">
+                Specification Value / Details *
+              </label>
+              <span className="text-[10px] text-slate-400">Supports newlines, bold & links</span>
+            </div>
             <textarea
               rows={3}
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="e.g. 7.6-inch Dynamic AMOLED 2X, 120Hz refresh rate, HDR10+ certified"
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:bg-white focus:border-indigo-500 outline-none leading-relaxed resize-y"
+              placeholder="e.g. 7.6-inch Dynamic AMOLED 2X, or multi-line details with - Bullet points"
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:bg-white focus:border-indigo-500 outline-none leading-relaxed resize-y font-sans"
               required
             />
+            {details && (
+              <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <Eye className="w-3 h-3 text-indigo-600" />
+                  <span>Real-time Preview</span>
+                </div>
+                <FormattedSpecHtml content={details} className="text-xs text-slate-800 bg-white p-2 rounded-md border border-slate-200/80" />
+              </div>
+            )}
           </div>
 
           {/* Row Order */}

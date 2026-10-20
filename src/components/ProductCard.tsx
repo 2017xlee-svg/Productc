@@ -134,8 +134,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {previewSpecs.map((spec) => (
                 <div key={spec.id} className="flex items-center justify-between text-slate-600">
                   <span className="font-medium text-slate-500">{spec.specName}</span>
-                  <span className="font-semibold text-slate-800 text-right truncate max-w-[140px]">
-                    {spec.details || '—'}
+                  <span className="font-semibold text-slate-800 text-right truncate max-w-[140px]" title={spec.details?.replace(/<[^>]*>/g, '') || ''}>
+                    {spec.details ? spec.details.replace(/<[^>]*>/g, '').replace(/\*\*/g, '').replace(/\n/g, ' ') : '—'}
                   </span>
                 </div>
               ))}

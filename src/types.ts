@@ -30,6 +30,7 @@ export interface Specification {
   specName: string;
   details: string;
   unit?: string;
+  isNumeric?: boolean;
   order: number;
   productId: string;
   productTitle: string;

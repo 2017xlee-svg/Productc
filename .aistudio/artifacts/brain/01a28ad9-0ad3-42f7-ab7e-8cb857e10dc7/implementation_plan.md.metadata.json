@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan to display full-size, uncropped product images with object-contain and clean neutral backgrounds across Product Cards, Product Detail Modal, and Comparison Matrix.",
-  "updatedAt": "2026-10-18T12:17:16.243486490Z",
+  "summary": "Implementation plan to add an 'Is Number' switch for specifications, enable HTML & newline rendering across product views and editors, trim seed data to 3 products and 3 reviews, and guide cloud storage activation.",
+  "updatedAt": "2026-10-20T07:24:37.432141163Z",
   "requestFeedback": true,
   "userFacing": true
 }

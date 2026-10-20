@@ -24,6 +24,7 @@ import {
   Scale,
 } from 'lucide-react';
 import { Product, Specification, UserReview, Attachment } from '../types';
+import { FormattedSpecHtml } from '../utils/formatHtml';
 import {
   getProductImage,
   getFallbackImage,
@@ -111,6 +112,8 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
 
   // Per-specification Best value mode: 'higher' | 'lower'
   const [specBestValueModes, setSpecBestValueModes] = useState<Record<string, 'higher' | 'lower'>>({});
+  // Per-specification manual override for numeric vs text mode: 'number' | 'text'
+  const [specNumericOverrides, setSpecNumericOverrides] = useState<Record<string, boolean>>({});
 
   const getSpecBestValueMode = (specName: string, unit?: string): 'higher' | 'lower' => {
     if (specBestValueModes[specName]) {
@@ -339,6 +342,11 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
 
     const explicitUnit = spec.unit?.trim();
 
+    // If specification explicitly specifies isNumeric === false, NEVER treat as numeric!
+    if (spec.isNumeric === false) {
+      return { hasNumeric: false, val: 0, unit: explicitUnit || '', displayUnit: explicitUnit || '', rawText: clean };
+    }
+
     // Check currency prefix e.g. $1,799 or €999
     const currMatch = clean.match(/^([$€£¥₹])\s*([0-9,]+(?:\.[0-9]+)?)/);
     if (currMatch) {
@@ -354,9 +362,26 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
       }
     }
 
+    // If text contains newlines, bullets, or is long narrative (> 45 chars), do NOT auto-parse as numeric
+    // unless spec explicitly has isNumeric === true
+    if (spec.isNumeric !== true && (clean.includes('\n') || clean.includes('•') || clean.length > 45)) {
+      return {
+        hasNumeric: false,
+        val: 0,
+        unit: explicitUnit || '',
+        displayUnit: explicitUnit || '',
+        rawText: clean,
+      };
+    }
+
     // Match numeric value (float or int) and optional unit
     // E.g. "201 g", "20 gram", "7.6 inch", "7.6\"", "120 Hz", "5000 mAh", "1.2 kg", "2 years"
-    const numMatch = clean.match(/([0-9,]+(?:\.[0-9]+)?)\s*([a-zA-Z$€£%°/"″]+)?/);
+    // When isNumeric is not explicitly true, only match if number starts at beginning
+    const regexPattern = spec.isNumeric === true
+      ? /([0-9,]+(?:\.[0-9]+)?)\s*([a-zA-Z$€£%°/"″]+)?/
+      : /^\s*([0-9,]+(?:\.[0-9]+)?)\s*([a-zA-Z$€£%°/"″]+)?/i;
+
+    const numMatch = clean.match(regexPattern);
     if (numMatch) {
       const num = parseFloat(numMatch[1].replace(/,/g, ''));
       if (!isNaN(num)) {
@@ -982,8 +1007,26 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
               };
             });
 
-            // Check if any product has a numeric value for this spec
-            const isNumericSpec = parsedItems.some((it) => it.parsed.hasNumeric);
+            // Check if user explicitly toggled or if specs define isNumeric
+            let isNumericSpec = false;
+            if (specNumericOverrides[specName] !== undefined) {
+              isNumericSpec = specNumericOverrides[specName];
+            } else {
+              // Check if any spec for this specName explicitly set isNumeric
+              const explicitFalse = parsedItems.some((it) => it.spec?.isNumeric === false);
+              const explicitTrue = parsedItems.some((it) => it.spec?.isNumeric === true);
+              if (explicitFalse && !explicitTrue) {
+                isNumericSpec = false;
+              } else if (explicitTrue) {
+                isNumericSpec = true;
+              } else {
+                // Auto-detect: must have parsed numeric value for at least 2 items, and not contain newlines or narrative
+                const numericItems = parsedItems.filter(
+                  (it) => it.parsed.hasNumeric && !it.parsed.rawText.includes('\n') && it.parsed.rawText.length < 35
+                );
+                isNumericSpec = numericItems.length >= 2;
+              }
+            }
 
             if (isNumericSpec) {
               // Extract detected unit
@@ -1038,6 +1081,18 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                           <span>Different</span>
                         </span>
                       )}
+
+                      {/* Quick Toggle: Number vs Text Comparison */}
+                      <button
+                        type="button"
+                        onClick={() => setSpecNumericOverrides((prev) => ({ ...prev, [specName]: false }))}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        title="Click to turn off Number mode (switch to Text Description mode)"
+                      >
+                        <span className="w-4 h-4 rounded bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">#</span>
+                        <span>Number ON</span>
+                        <span className="text-[10px] text-indigo-400">⇄ Text</span>
+                      </button>
 
                       {/* Individual Higher/Lower Toggle Button */}
                       <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg border border-slate-200">
@@ -1186,11 +1241,25 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                     <span>{specName}</span>
                   </div>
 
-                  {selectedProducts.length >= 2 && isDiff && (
-                    <span className="px-2.5 py-1 rounded-md border border-yellow-500 bg-yellow-300 text-yellow-950 text-xs font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-                      <span>Different</span>
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* Quick Toggle: Number vs Text Comparison */}
+                    <button
+                      type="button"
+                      onClick={() => setSpecNumericOverrides((prev) => ({ ...prev, [specName]: true }))}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+                      title="Click to turn on Number comparison bar mode"
+                    >
+                      <span className="w-4 h-4 rounded bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold">Aa</span>
+                      <span>Number OFF</span>
+                      <span className="text-[10px] text-slate-400">⇄ Number</span>
+                    </button>
+
+                    {selectedProducts.length >= 2 && isDiff && (
+                      <span className="px-2.5 py-1 rounded-md border border-yellow-500 bg-yellow-300 text-yellow-950 text-xs font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                        <span>Different</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Values for each product */}
@@ -1210,12 +1279,9 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                           </span>
                         </div>
 
-                        {/* Specification Details (HTML / rich text) */}
+                        {/* Specification Details (HTML / rich text formatted) */}
                         {spec && spec.details ? (
-                          <div
-                            className="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line"
-                            dangerouslySetInnerHTML={{ __html: spec.details }}
-                          />
+                          <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
                         ) : (
                           <div className="pt-0.5">
                             <span className="text-xs text-slate-400 italic">No value provided</span>
