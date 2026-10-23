@@ -68,3 +68,43 @@ export const FormattedSpecHtml: React.FC<FormattedHtmlProps> = ({ content = '', 
     </div>
   );
 };
+
+/**
+ * Checks whether text content already includes the unit measurement as a suffix or word
+ * (e.g. "30g" already has "g", "27db" already has "db", "2 years" already has "year"),
+ * preventing redundant display like "30g [g]".
+ */
+export function hasUnitSuffix(text?: string, unit?: string): boolean {
+  if (!text || !unit) return false;
+  const cleanText = text.replace(/<[^>]*>/g, '').trim().toLowerCase();
+  const cleanUnit = unit.trim().toLowerCase();
+  if (!cleanText || !cleanUnit) return false;
+
+  // Exact suffix or pluralized suffix (e.g. "30g", "2 years")
+  if (cleanText.endsWith(cleanUnit) || cleanText.endsWith(cleanUnit + 's')) {
+    return true;
+  }
+
+  // Word boundary or number boundary check (e.g. "30 cm distance", "30g net")
+  const regex = new RegExp(`(^|\\s|\\d)${cleanUnit}(s|\\b|$)`, 'i');
+  return regex.test(cleanText);
+}
+
+interface SpecUnitBadgeProps {
+  unit?: string;
+  details?: string;
+  className?: string;
+}
+
+export const SpecUnitBadge: React.FC<SpecUnitBadgeProps> = ({ unit, details, className = '' }) => {
+  if (!unit || !unit.trim()) return null;
+  if (details && hasUnitSuffix(details, unit)) return null;
+
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200/90 shadow-2xs ${className}`}
+    >
+      {unit.trim()}
+    </span>
+  );
+};

@@ -3,7 +3,7 @@ import { X, Layers, Save, Trash2, Upload, Image as ImageIcon, Loader2, ArrowLeft
 import { Specification, Attachment } from '../types';
 import { createAttachmentFromFile, createAttachmentFromUrl } from '../utils/imageCompressor';
 import { getAttachmentDisplayUrl, createSpecPlaceholderSvg } from '../utils/imageFallback';
-import { FormattedSpecHtml } from '../utils/formatHtml';
+import { FormattedSpecHtml, SpecUnitBadge } from '../utils/formatHtml';
 
 interface EditSpecModalProps {
   specification: Specification | null;
@@ -309,7 +309,10 @@ export const EditSpecModal: React.FC<EditSpecModalProps> = ({
                   <Eye className="w-3 h-3 text-indigo-600" />
                   <span>Real-time Preview</span>
                 </div>
-                <FormattedSpecHtml content={details} className="text-xs text-slate-800 bg-white p-2 rounded-md border border-slate-200/80" />
+                <div className="flex items-baseline flex-wrap gap-2 bg-white p-2 rounded-md border border-slate-200/80">
+                  <FormattedSpecHtml content={details} className="text-xs text-slate-800" />
+                  <SpecUnitBadge unit={unit} details={details} />
+                </div>
               </div>
             )}
           </div>

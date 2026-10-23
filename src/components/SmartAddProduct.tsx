@@ -39,7 +39,7 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { Product, Specification, Attachment } from '../types';
-import { FormattedSpecHtml } from '../utils/formatHtml';
+import { FormattedSpecHtml, SpecUnitBadge } from '../utils/formatHtml';
 import {
   getProductImage,
   getFallbackImage,
@@ -489,10 +489,17 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
         s.specName.trim().toLowerCase() === specName.trim().toLowerCase()
     );
 
+    const groupUnit =
+      existingSpec?.unit ||
+      specifications.find(
+        (s) => s.specName.trim().toLowerCase() === specName.trim().toLowerCase() && s.unit?.trim()
+      )?.unit ||
+      '';
+
     setInlineEditKey(`${product.id}__${specName}`);
     setInlineSpecName(existingSpec ? existingSpec.specName : specName);
     setInlineDetails(existingSpec ? existingSpec.details : '');
-    setInlineUnit(existingSpec?.unit || '');
+    setInlineUnit(groupUnit);
     setInlineIsNumeric(existingSpec?.isNumeric !== false);
     setInlinePictures(existingSpec?.pictures || []);
   };
@@ -1389,17 +1396,25 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
               return (s?.details || '').trim();
             });
             const isDifferent = new Set(specValues).size > 1 || specValues.some((v) => !v);
+            const activeUnit = specifications.find(
+              (sp) => sp.specName.trim().toLowerCase() === specName.trim().toLowerCase() && sp.unit?.trim()
+            )?.unit?.trim();
 
             return (
               <div
                 key={specName}
                 className="bg-white rounded-2xl border border-sky-200 overflow-hidden shadow-xs"
               >
-                {/* Field Header with Different/Same Badge */}
+                {/* Field Header with Different/Same Badge & Spec Unit */}
                 <div className="flex items-center justify-between px-5 py-3.5 bg-sky-50/50 border-b border-sky-100">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sky-600 font-bold">📄</span>
                     <span className="text-sm font-bold text-slate-900">{specName}</span>
+                    {activeUnit && (
+                      <span className="px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-sky-100 text-sky-800 border border-sky-200/90 shadow-2xs">
+                        {activeUnit}
+                      </span>
+                    )}
                   </div>
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold shadow-2xs ${
@@ -1589,7 +1604,10 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                                       <span>Real-time Formatted Preview</span>
                                     </div>
                                     <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs">
-                                      <FormattedSpecHtml content={inlineDetails} className="text-xs sm:text-sm text-slate-800" />
+                                      <div className="flex items-baseline flex-wrap gap-2">
+                                        <FormattedSpecHtml content={inlineDetails} className="text-xs sm:text-sm text-slate-800" />
+                                        <SpecUnitBadge unit={inlineUnit || activeUnit} details={inlineDetails} />
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -1718,7 +1736,10 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                         ) : existingSpec && existingSpec.details ? (
                           /* CASE 2: Product has this specification data */
                           <div className="space-y-2">
-                            <FormattedSpecHtml content={existingSpec.details} className="text-sm text-slate-800" />
+                            <div className="flex items-baseline flex-wrap gap-2">
+                              <FormattedSpecHtml content={existingSpec.details} className="text-sm text-slate-800" />
+                              <SpecUnitBadge unit={existingSpec.unit || activeUnit} details={existingSpec.details} />
+                            </div>
 
                             {/* Pictures thumbnails if any */}
                             {existingSpec.pictures && existingSpec.pictures.length > 0 && (

@@ -1,6 +1,6 @@
 {
-  "summary":  "Align the Smart Add Product specification editor with Product Mode to provide identical capabilities: rich text formatting toolbar (Bold, Italic, Underline, Strikethrough, Link), quick unit preset chips, Number/Text comparison toggle, multi-image upload & thumbnail management, and real-time live preview.",
-  "updatedAt":  "2026-10-22T11:32:46.827327593Z",
+  "summary":  "Implementation plan for hierarchical slot-priority specification ordering across Compare Module, Smart Add Module, and Smart Product creation.",
+  "updatedAt":  "2026-10-23T11:54:32.334590169Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

@@ -24,7 +24,7 @@ import {
   Scale,
 } from 'lucide-react';
 import { Product, Specification, UserReview, Attachment } from '../types';
-import { FormattedSpecHtml } from '../utils/formatHtml';
+import { FormattedSpecHtml, SpecUnitBadge } from '../utils/formatHtml';
 import {
   getProductImage,
   getFallbackImage,
@@ -1028,13 +1028,14 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
               }
             }
 
-            if (isNumericSpec) {
-              // Extract detected unit
-              const detectedUnit =
-                parsedItems.find((it) => it.parsed.displayUnit)?.parsed.displayUnit ||
-                parsedItems.find((it) => it.spec?.unit)?.spec?.unit ||
-                '';
+            // Extract detected unit across all items for this spec
+            const detectedUnit =
+              parsedItems.find((it) => it.parsed.displayUnit)?.parsed.displayUnit ||
+              parsedItems.find((it) => it.spec?.unit)?.spec?.unit ||
+              specifications.find((s) => s.specName.toLowerCase() === specName.toLowerCase() && s.unit?.trim())?.unit ||
+              '';
 
+            if (isNumericSpec) {
               const numericVals = parsedItems
                 .filter((it) => it.parsed.hasNumeric)
                 .map((it) => it.parsed.val);
@@ -1239,6 +1240,11 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                   <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
                     <Sliders className="w-4 h-4 text-indigo-600" />
                     <span>{specName}</span>
+                    {detectedUnit && (
+                      <span className="px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-700 font-mono text-[11px] font-semibold">
+                        {detectedUnit}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1281,7 +1287,10 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
 
                         {/* Specification Details (HTML / rich text formatted) */}
                         {spec && spec.details ? (
-                          <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
+                          <div className="flex items-baseline flex-wrap gap-2">
+                            <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
+                            <SpecUnitBadge unit={spec.unit || detectedUnit} details={spec.details} />
+                          </div>
                         ) : (
                           <div className="pt-0.5">
                             <span className="text-xs text-slate-400 italic">No value provided</span>

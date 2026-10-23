@@ -30,7 +30,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { Attachment } from '../types';
-import { FormattedSpecHtml } from '../utils/formatHtml';
+import { FormattedSpecHtml, SpecUnitBadge } from '../utils/formatHtml';
 import { FullscreenImageViewer } from './fullscreen-image-viewer';
 import { createAttachmentFromFile, createAttachmentFromUrl, getCachedObjectUrl } from '../utils/imageCompressor';
 import {
@@ -1433,8 +1433,13 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                       </div>
 
                       {/* Specification Name Header */}
-                      <div className="font-semibold text-slate-900 text-sm truncate">
-                        {spec.name || 'New specification'}
+                      <div className="font-semibold text-slate-900 text-sm truncate flex items-center gap-2">
+                        <span>{spec.name || 'New specification'}</span>
+                        {spec.unit && (
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            {spec.unit}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -1621,7 +1626,10 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                                 <span>Real-time Formatted Preview</span>
                               </div>
                               <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs">
-                                <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
+                                <div className="flex items-baseline flex-wrap gap-2">
+                                  <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
+                                  <SpecUnitBadge unit={spec.unit} details={spec.details} />
+                                </div>
                               </div>
                             </div>
                           )}
