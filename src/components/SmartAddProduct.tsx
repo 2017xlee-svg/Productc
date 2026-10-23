@@ -30,6 +30,13 @@ import {
   Database,
   ChevronsUpDown,
   Eye,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Link as LinkIcon,
+  ExternalLink,
+  Maximize2,
 } from 'lucide-react';
 import { Product, Specification, Attachment } from '../types';
 import { FormattedSpecHtml } from '../utils/formatHtml';
@@ -528,6 +535,25 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
     } finally {
       setIsSavingInline(false);
     }
+  };
+
+  // Insert formatting tags (<b>, <i>, <u>, <s>, <a>) into inline details textarea
+  const insertInlineFormatting = (openTag: string, closeTag: string) => {
+    const textarea = document.getElementById('smart-add-inline-details-textarea') as HTMLTextAreaElement | null;
+    if (!textarea) {
+      setInlineDetails((prev) => `${prev}${openTag}${closeTag}`);
+      return;
+    }
+    const start = textarea.selectionStart ?? inlineDetails.length;
+    const end = textarea.selectionEnd ?? inlineDetails.length;
+    const selected = inlineDetails.substring(start, end);
+    const replacement = `${openTag}${selected}${closeTag}`;
+    const newDetails = inlineDetails.substring(0, start) + replacement + inlineDetails.substring(end);
+    setInlineDetails(newDetails);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + openTag.length, end + openTag.length);
+    }, 50);
   };
 
   // Move specification order up/down within a product
@@ -1406,7 +1432,7 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                         {/* CASE 1: Inline Editing Form is open (Matches sample direct edit 2.PNG) */}
                         {isInlineEditing ? (
                           <div className="bg-sky-50/40 border border-sky-300 rounded-xl p-4 space-y-3.5 mt-1 animate-in fade-in duration-200">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                               <div className="sm:col-span-2">
                                 <label className="block text-xs font-bold text-slate-900 mb-1">
                                   Specification
@@ -1415,7 +1441,7 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                                   type="text"
                                   value={inlineSpecName}
                                   onChange={(e) => setInlineSpecName(e.target.value)}
-                                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500"
+                                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all font-medium"
                                 />
                               </div>
                               <div>
@@ -1427,15 +1453,34 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                                   value={inlineUnit}
                                   onChange={(e) => setInlineUnit(e.target.value)}
                                   placeholder="e.g. g, mAh, mm"
-                                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500 font-mono"
+                                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all font-mono"
                                 />
                               </div>
                             </div>
 
+                            {/* Quick Unit Presets */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                              <span className="text-[10px] text-slate-400 font-medium mr-1">Quick unit:</span>
+                              {['g', 'kg', 'inch', 'cm', 'mm', 'year', 'month', 'mAh', 'Hz', '$', 'GB'].map((u) => (
+                                <button
+                                  key={u}
+                                  type="button"
+                                  onClick={() => setInlineUnit(inlineUnit.toLowerCase() === u.toLowerCase() ? '' : u)}
+                                  className={`px-2 py-0.5 rounded-md text-[11px] font-mono transition-colors ${
+                                    inlineUnit.toLowerCase() === u.toLowerCase()
+                                      ? 'bg-slate-900 text-white font-semibold'
+                                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {u}
+                                </button>
+                              ))}
+                            </div>
+
                             {/* Is Number / Metric Comparison Switch */}
-                            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs ${
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                              <div className="flex items-center gap-2.5">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
                                   inlineIsNumeric ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700'
                                 }`}>
                                   {inlineIsNumeric ? '#' : 'Aa'}
@@ -1443,7 +1488,7 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                                 <div>
                                   <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                     <span>{inlineIsNumeric ? 'Numeric Comparison' : 'Text / Descriptive Mode'}</span>
-                                    <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded-full ${
+                                    <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full ${
                                       inlineIsNumeric ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'
                                     }`}>
                                       {inlineIsNumeric ? 'Number ON' : 'Number OFF'}
@@ -1451,124 +1496,223 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                                   </div>
                                   <div className="text-[10px] text-slate-500">
                                     {inlineIsNumeric
-                                      ? 'Enables comparison bar and Best value comparison'
-                                      : 'Preserves multi-line text & formatting without false number comparison'}
+                                      ? 'Enables numerical comparison bar and Best value logic'
+                                      : 'Preserves multi-line text & formatting without false number comparisons'}
                                   </div>
                                 </div>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => setInlineIsNumeric(!inlineIsNumeric)}
-                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
                                   inlineIsNumeric ? 'bg-indigo-600' : 'bg-slate-300'
                                 }`}
+                                title="Toggle numeric comparison vs descriptive text"
                               >
                                 <span
-                                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                                    inlineIsNumeric ? 'translate-x-4' : 'translate-x-0'
+                                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                    inlineIsNumeric ? 'translate-x-5' : 'translate-x-0'
                                   }`}
                                 />
                               </button>
                             </div>
 
-                            <div>
-                              <div className="flex items-center justify-between mb-1">
-                                <label className="block text-xs font-bold text-slate-900">
-                                  Details
+                            {/* Specification Details with Toolbar & Realtime Preview */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <label className="block text-[11px] font-semibold text-slate-600">
+                                  Specification details
                                 </label>
-                                <span className="text-[10px] text-slate-500">Supports newlines, bold & links</span>
+                                <span className="text-[10px] text-slate-400">
+                                  Supports newlines, bold, italic & links
+                                </span>
                               </div>
-                              <textarea
-                                value={inlineDetails}
-                                onChange={(e) => setInlineDetails(e.target.value)}
-                                placeholder="Leave blank if not known yet. Supports newlines, bullet points, and <b>bold</b> tags."
-                                rows={3}
-                                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-sky-500 resize-y leading-relaxed font-sans"
-                              />
-                              {inlineDetails && (
-                                <div className="mt-2 p-2.5 rounded-lg bg-white border border-slate-200">
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <Eye className="w-3 h-3 text-indigo-600" />
-                                    <span>Real-time Preview</span>
-                                  </div>
-                                  <FormattedSpecHtml content={inlineDetails} className="text-xs text-slate-800" />
+                              <div className="rounded-xl border border-slate-200 overflow-hidden bg-white focus-within:border-slate-800 focus-within:ring-1 focus-within:ring-slate-800 transition-all">
+                                {/* Rich Toolbar: B, I, U, S, |, Add link */}
+                                <div className="border-b border-slate-200 px-3 py-2 flex items-center gap-4 text-slate-800 text-sm bg-slate-50/70">
+                                  <button
+                                    type="button"
+                                    onClick={() => insertInlineFormatting('<b>', '</b>')}
+                                    title="Bold"
+                                    className="font-bold hover:text-indigo-600 px-1 py-0.5 rounded transition-colors cursor-pointer"
+                                  >
+                                    B
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => insertInlineFormatting('<i>', '</i>')}
+                                    title="Italic"
+                                    className="italic font-serif hover:text-indigo-600 px-1 py-0.5 rounded transition-colors cursor-pointer"
+                                  >
+                                    I
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => insertInlineFormatting('<u>', '</u>')}
+                                    title="Underline"
+                                    className="underline hover:text-indigo-600 px-1 py-0.5 rounded transition-colors font-medium cursor-pointer"
+                                  >
+                                    U
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => insertInlineFormatting('<s>', '</s>')}
+                                    title="Strikethrough"
+                                    className="line-through hover:text-indigo-600 px-1 py-0.5 rounded transition-colors font-medium cursor-pointer"
+                                  >
+                                    S
+                                  </button>
+                                  <div className="h-4 w-px bg-slate-200" />
+                                  <button
+                                    type="button"
+                                    onClick={() => insertInlineFormatting('<a href="', '">Link text</a>')}
+                                    className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-indigo-600 font-medium px-1 py-0.5 rounded transition-colors cursor-pointer"
+                                  >
+                                    <LinkIcon className="w-3.5 h-3.5" />
+                                    <span>Add link</span>
+                                  </button>
                                 </div>
-                              )}
+                                <textarea
+                                  id="smart-add-inline-details-textarea"
+                                  rows={3}
+                                  value={inlineDetails}
+                                  onChange={(e) => setInlineDetails(e.target.value)}
+                                  placeholder="Details, multi-line notes, or <b>Bold</b> feature..."
+                                  className="w-full p-3.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none resize-y leading-relaxed font-sans"
+                                />
+
+                                {/* Real-Time Live Render Preview */}
+                                {inlineDetails && (
+                                  <div className="border-t border-slate-100 bg-slate-50/80 p-3">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                      <Eye className="w-3 h-3 text-indigo-600" />
+                                      <span>Real-time Formatted Preview</span>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs">
+                                      <FormattedSpecHtml content={inlineDetails} className="text-xs sm:text-sm text-slate-800" />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             {/* Specification Pictures */}
-                            <div>
-                              <label className="block text-xs font-bold text-slate-900 mb-1.5">
-                                Specification pictures
-                              </label>
-                              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer shadow-2xs">
-                                {isUploadingInline ? (
-                                  <Loader2 className="w-3.5 h-3.5 text-slate-800 animate-spin" />
-                                ) : (
-                                  <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                            <div className="space-y-2 pt-1">
+                              <div className="flex items-center justify-between">
+                                <label className="block text-[11px] font-semibold text-slate-600">
+                                  Specification pictures
+                                </label>
+                                {inlinePictures.length > 0 && (
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    {inlinePictures.length} {inlinePictures.length === 1 ? 'photo' : 'photos'} attached
+                                  </span>
                                 )}
-                                <span>{isUploadingInline ? 'Uploading...' : 'Choose pictures'}</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  multiple
-                                  disabled={isUploadingInline}
-                                  onChange={handleInlinePictureUpload}
-                                  className="hidden"
-                                />
-                              </label>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold cursor-pointer shadow-2xs transition-colors">
+                                  {isUploadingInline ? (
+                                    <Loader2 className="w-3.5 h-3.5 text-slate-800 animate-spin" />
+                                  ) : (
+                                    <ImageIcon className="w-3.5 h-3.5 text-slate-600" />
+                                  )}
+                                  <span>{isUploadingInline ? 'Uploading...' : 'Upload pictures'}</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    disabled={isUploadingInline}
+                                    onChange={handleInlinePictureUpload}
+                                    className="hidden"
+                                  />
+                                </label>
+                              </div>
 
                               {inlinePictures.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                                   {inlinePictures.map((pic, pIdx) => (
-                                    <div key={pic.id} className="relative group">
+                                    <div
+                                      key={pic.id || pIdx}
+                                      className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-4/3 flex items-center justify-center shadow-2xs"
+                                    >
                                       <img
-                                        src={getAttachmentDisplayUrl(pic, 'Uploaded spec photo')}
+                                        src={getAttachmentDisplayUrl(pic, inlineSpecName || 'Spec')}
                                         alt={pic.name}
+                                        className="w-full h-full object-contain p-1 bg-white"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).src = createSpecPlaceholderSvg(
                                             pic.name,
-                                            'Uploaded photo'
+                                            inlineSpecName || 'Photo'
                                           );
                                         }}
-                                        className="w-12 h-12 object-cover rounded-lg border border-slate-200 cursor-pointer"
-                                        onClick={() => {
-                                          setFullscreenImages(inlinePictures);
-                                          setFullscreenIndex(pIdx);
-                                        }}
                                       />
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setInlinePictures((prev) => prev.filter((p) => p.id !== pic.id))
-                                        }
-                                        className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-0.5 text-xs shadow-xs hover:bg-rose-600 cursor-pointer"
-                                      >
-                                        ✕
-                                      </button>
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setFullscreenImages(inlinePictures);
+                                            setFullscreenIndex(pIdx);
+                                          }}
+                                          className="p-1 rounded-full bg-white/90 text-slate-800 hover:bg-white shadow-xs cursor-pointer"
+                                          title="Fullscreen zoom"
+                                        >
+                                          <Maximize2 className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setInlinePictures((prev) => prev.filter((_, idx) => idx !== pIdx))}
+                                          className="p-1 rounded-full bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer"
+                                          title="Remove photo"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                      {pic.name && (
+                                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-white px-1 py-0.5 truncate group-hover:opacity-0 transition-opacity">
+                                          {pic.name}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
                               )}
                             </div>
 
-                            {/* Action Buttons: Save & Cancel */}
-                            <div className="flex items-center gap-2 pt-1">
-                              <button
-                                onClick={() => handleSaveInlineSpec(product, specName)}
-                                disabled={isSavingInline}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
-                              >
-                                <Save className="w-3.5 h-3.5" />
-                                <span>{isSavingInline ? 'Saving...' : 'Save'}</span>
-                              </button>
-                              <button
-                                onClick={() => setInlineEditKey(null)}
-                                className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                                <span>Cancel</span>
-                              </button>
+                            {/* Action Buttons: Save, Cancel & Open in Modal */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleSaveInlineSpec(product, specName)}
+                                  disabled={isSavingInline}
+                                  className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                                >
+                                  <Save className="w-3.5 h-3.5" />
+                                  <span>{isSavingInline ? 'Saving...' : 'Save'}</span>
+                                </button>
+                                <button
+                                  onClick={() => setInlineEditKey(null)}
+                                  className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Cancel</span>
+                                </button>
+                              </div>
+
+                              {existingSpec && onOpenEditSpec && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setInlineEditKey(null);
+                                    onOpenEditSpec(existingSpec);
+                                  }}
+                                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded-xl cursor-pointer transition-colors"
+                                  title="Open full edit modal"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">Open in Full Modal</span>
+                                  <span className="sm:hidden">Modal</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         ) : existingSpec && existingSpec.details ? (
