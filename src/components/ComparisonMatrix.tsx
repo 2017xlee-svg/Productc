@@ -36,6 +36,7 @@ import {
 } from '../utils/imageFallback';
 import { FullscreenImageViewer } from './fullscreen-image-viewer';
 import { TagFilterBar } from './TagFilterBar';
+import { computeHierarchicalSpecOrder } from '../utils/specOrdering';
 
 interface ComparisonMatrixProps {
   comparedProducts: Product[];
@@ -308,22 +309,10 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
   }, [allProducts, specifications]);
 
   // Complete list of custom specification names across selected products
+  // following slot priority (Slot 1 specs 1..N first, then Slot 2 remaining specs 1..M, etc.)
   const uniqueSpecNames = useMemo(() => {
-    const specOrderMap = new Map<string, number>();
-    selectedProducts.forEach((p) => {
-      const pSpecs = productSpecsMap.get(p.id) || [];
-      pSpecs.forEach((s) => {
-        const existing = specOrderMap.get(s.specName);
-        if (existing === undefined || s.order < existing) {
-          specOrderMap.set(s.specName, s.order ?? 999);
-        }
-      });
-    });
-
-    return Array.from(specOrderMap.entries())
-      .sort((a, b) => a[1] - b[1])
-      .map(([name]) => name);
-  }, [selectedProducts, productSpecsMap]);
+    return computeHierarchicalSpecOrder(selectedProducts, specifications);
+  }, [selectedProducts, specifications]);
 
   // Helper to extract numeric value & unit from specification details or spec object
   // Supports e.g. "201 g", "20 g", "5000 mAh", "$1,799", "7.6 inches", "5.6 mm", "12 GB", "1 year", "2 years"

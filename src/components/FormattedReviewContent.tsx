@@ -13,6 +13,7 @@ import {
 } from '../utils/imageFallback';
 import { getCachedObjectUrl, registerActiveObjectUrl } from '../utils/imageCompressor';
 import { getMediaBlob } from '../lib/indexedDbMedia';
+import { isAppSchemeUrl, openAppScheme, autoLinkUrls } from '../utils/formatHtml';
 
 interface ReviewImageItemProps {
   rawSrc?: string;
@@ -187,12 +188,51 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({
     );
   };
 
-  // Pre-process markdown and HTML content to guarantee flawless rendering:
-  // 1. Unescapes underscores in URLs (UpNote exports `\_` inside links)
-  // 2. Ensures markdown tables have clean blank lines around them so GFM table parser activates reliably
-  // 3. Converts markdown image syntax to figures with zoom and metadata
+  // Check whether content is already rich HTML (from imported HTML notes or rich text editor)
+  const isHtml = useMemo(() => {
+    if (!content) return false;
+    return (
+      /<\/?(p|div|h[1-6]|table|thead|tbody|tr|th|td|ul|ol|li|img|figure|blockquote|span|b|i|u|strong|em|mark|del|a|br|hr)[\s>\/]/i.test(content) ||
+      (content.includes('<') && content.includes('>') && (content.includes('</') || content.includes('/>')))
+    );
+  }, [content]);
+
+  // Process HTML directly for imported reviews, auto-linking bare URLs and ensuring app links have target="_top"
+  const processedHtml = useMemo(() => {
+    if (!content || !isHtml) return '';
+    let html = content;
+
+    // 1. Clean escaped underscores in URLs
+    html = html.replace(/(https?|upnote|marginnote\w*|obsidian|notion|craftdocs|bear|things|onenote):\/\/[^\s<>'"]+/gi, (url) =>
+      url.replace(/\\_/g, '_')
+    );
+
+    // 2. Ensure existing <a> tags for app schemes have target="_top" and blue styling
+    html = html.replace(/<a\b([^>]*?)href=["']((?:upnote|marginnote\w*|obsidian|notion|craftdocs|bear|things|onenote|goodnotes|notability|logseq):\/\/[^"']+)["']([^>]*?)>/gi, (_m, pre, href, post) => {
+      const cleanPre = pre.replace(/\btarget=["'][^"']*["']/gi, '').replace(/\brel=["'][^"']*["']/gi, '').replace(/\bclass=["'][^"']*["']/gi, '');
+      const cleanPost = post.replace(/\btarget=["'][^"']*["']/gi, '').replace(/\brel=["'][^"']*["']/gi, '').replace(/\bclass=["'][^"']*["']/gi, '');
+      return `<a ${cleanPre.trim()} href="${href}" target="_top" class="text-blue-600 underline hover:text-blue-800 break-all cursor-pointer font-medium" ${cleanPost.trim()}>`.replace(/\s{2,}/g, ' ');
+    });
+
+    // 3. Convert markdown links [Label](url) if any were mixed in
+    html = html.replace(
+      /\[([^\]]+)\]\(((?:https?|upnote|marginnote\w*|obsidian|notion|craftdocs|bear|things|onenote|goodnotes|notability|logseq):\/\/[^\s<>'"]+[\w\/=&#?%-])\)/gi,
+      (_m, label, url) => {
+        const isApp = isAppSchemeUrl(url);
+        const targetAttr = isApp ? ' target="_top"' : ' target="_blank" rel="noopener noreferrer"';
+        return `<a href="${url}"${targetAttr} class="text-blue-600 underline hover:text-blue-800 break-all cursor-pointer font-medium">${label}</a>`;
+      }
+    );
+
+    // 4. Auto-link bare URLs (including app schemes upnote://, marginnote4app://, etc.)
+    html = autoLinkUrls(html);
+
+    return html;
+  }, [content, isHtml]);
+
+  // Pre-process markdown content when pure markdown is provided:
   const preparedMarkdown = useMemo(() => {
-    if (!content) return '';
+    if (!content || isHtml) return '';
     let text = content;
 
     // Clean escaped underscores in Markdown links: [https://...\_...](https://..._...)
@@ -211,6 +251,19 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({
     text = text.replace(/(https?:\/\/[^\s<>()"']+)/g, (_m, url) => {
       return url.replace(/\\_/g, '_');
     });
+
+    // Convert markdown links [Label](url) into <a> tags first so autoLinkUrls won't mangle them
+    text = text.replace(
+      /\[([^\]]+)\]\(((?:https?|upnote|marginnote\w*|obsidian|notion|craftdocs|bear|things|onenote|goodnotes|notability|logseq):\/\/[^\s<>'"]+[\w\/=&#?%-])\)/gi,
+      (_m, label, url) => {
+        const isApp = isAppSchemeUrl(url);
+        const targetAttr = isApp ? ' target="_top"' : ' target="_blank" rel="noopener noreferrer"';
+        return `<a href="${url}"${targetAttr} class="text-blue-600 underline hover:text-blue-800 break-all cursor-pointer font-medium">${label}</a>`;
+      }
+    );
+
+    // Auto-convert bare app schemes (upnote://, marginnote4app://, obsidian://, etc.) and web URLs to clickable <a> links
+    text = autoLinkUrls(text);
 
     // Convert markdown images to figures with zoom and attachment ID if needed, ensuring surrounding blank lines
     text = text.replace(
@@ -340,6 +393,16 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({
   // Robust container-level click delegation for any rendered images in HTML
   const handleHtmlContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (anchor) {
+      const href = anchor.getAttribute('href');
+      if (href && isAppSchemeUrl(href)) {
+        e.stopPropagation();
+        openAppScheme(href);
+        return;
+      }
+    }
+
     const img = target.closest('img');
     if (!img) return;
 
@@ -381,18 +444,30 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({
 
       img.style.cursor = 'zoom-in';
     });
-  }, [preparedMarkdown, pictures]);
+  }, [preparedMarkdown, processedHtml, pictures]);
 
   return (
     <>
       <div
         ref={htmlContainerRef}
         onClick={handleHtmlContainerClick}
-        className={`review-formatted-body max-w-none text-slate-800 text-sm leading-relaxed ${className}`}
+        className={`review-formatted-body max-w-none text-slate-800 text-sm leading-relaxed ${className} [&_a]:text-blue-600 [&_a]:underline [&_a]:hover:text-blue-800 [&_a]:font-medium [&_a]:break-all [&_a]:cursor-pointer`}
       >
-        <Markdown
+        {isHtml ? (
+          <div
+            className="html-imported-review space-y-3 leading-relaxed [&_p]:mb-3 [&_p]:leading-relaxed [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:pb-2 [&_h1]:border-b [&_h1]:border-slate-200 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2.5 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-3 [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-500 [&_blockquote]:pl-4 [&_blockquote]:py-1.5 [&_blockquote]:my-3 [&_blockquote]:bg-indigo-50/50 [&_blockquote]:rounded-r-lg [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-slate-200 [&_th]:p-2.5 [&_th]:bg-slate-50 [&_td]:border [&_td]:border-slate-200 [&_td]:p-2.5"
+            dangerouslySetInnerHTML={{ __html: processedHtml }}
+          />
+        ) : (
+          <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
+          urlTransform={(url) => {
+            // Keep native app schemes (upnote://, marginnote4app://, etc.) and web URLs intact.
+            // Only strip dangerous javascript:
+            if (/^\s*javascript:/i.test(url)) return '';
+            return url;
+          }}
           components={{
             // Images embedded in Markdown or HTML
             img: ({ node, src, alt, ...props }) => {
@@ -428,16 +503,20 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({
               if (cleanHref.startsWith('www.')) {
                 cleanHref = 'https://' + cleanHref;
               }
+              const isApp = isAppSchemeUrl(cleanHref);
               const isExternal = cleanHref.startsWith('http://') || cleanHref.startsWith('https://');
 
               return (
                 <a
                   href={cleanHref}
-                  target={isExternal ? '_blank' : undefined}
+                  target={isApp ? '_top' : (isExternal ? '_blank' : undefined)}
                   rel={isExternal ? 'noopener noreferrer' : undefined}
-                  className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 underline font-medium hover:underline transition-colors break-all cursor-pointer align-baseline"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 underline font-medium hover:underline transition-colors break-all cursor-pointer align-baseline"
                   onClick={(e) => {
-                    e.stopPropagation();
+                    if (isApp) {
+                      e.stopPropagation();
+                      openAppScheme(cleanHref);
+                    }
                   }}
                   {...props}
                 >
@@ -516,6 +595,7 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({
         >
           {preparedMarkdown}
         </Markdown>
+        )}
       </div>
 
       {/* Fullscreen view of embedded review pictures */}

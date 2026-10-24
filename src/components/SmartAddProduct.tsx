@@ -49,6 +49,7 @@ import {
 import { createAttachmentFromFile } from '../utils/imageCompressor';
 import { FullscreenImageViewer } from './fullscreen-image-viewer';
 import { TagFilterBar } from './TagFilterBar';
+import { computeHierarchicalSpecOrder, buildInheritedBlankSpecs } from '../utils/specOrdering';
 
 interface SmartAddProductProps {
   allProducts: Product[];
@@ -320,17 +321,9 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
   }, [safeAllProducts, selectedProducts, selectedTag, slotSearchQuery, safeSpecs]);
 
   // Extract all unique custom specification names across the selected products
+  // following slot priority (Slot 1 specs 1..N first, then Slot 2 remaining specs 1..M, etc.)
   const uniqueSpecNames = useMemo(() => {
-    const namesSet = new Set<string>();
-    selectedProducts.forEach((prod) => {
-      const pSpecs = specifications.filter((s) => s.productId === prod.id || s.productTitle === prod.name);
-      pSpecs.forEach((s) => {
-        if (s.specName && s.specName.trim()) {
-          namesSet.add(s.specName.trim());
-        }
-      });
-    });
-    return Array.from(namesSet);
+    return computeHierarchicalSpecOrder(selectedProducts, specifications);
   }, [selectedProducts, specifications]);
 
   // Calculate difference count across all fields (Brand, Tags, and Specs)
@@ -414,13 +407,8 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
     const nameToUse = newProductName.trim() || `Smart Product ${allProducts.length + 1}`;
     setIsCreatingProduct(true);
     try {
-      // Build blank specs array matching all unique specs from selected products
-      const blankSpecs = uniqueSpecNames.map((name, idx) => ({
-        name,
-        details: '',
-        unit: '',
-        order: idx + 1,
-      }));
+      // Build blank specs array matching all unique specs from selected products in hierarchical sequence
+      const blankSpecs = buildInheritedBlankSpecs(uniqueSpecNames, specifications);
 
       const created = await onSaveProduct({
         name: nameToUse,
@@ -1771,22 +1759,8 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                               </div>
                             )}
 
-                            {/* Actions bar: Move Up, Move Down, Edit, Delete */}
+                            {/* Actions bar: Edit, Delete */}
                             <div className="flex items-center gap-3 pt-1 text-xs text-slate-500">
-                              <button
-                                onClick={() => handleMoveSpecWithinProduct(product, specName, 'up')}
-                                className="hover:text-slate-900 p-0.5"
-                                title="Move specification up in order"
-                              >
-                                <ArrowUp className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleMoveSpecWithinProduct(product, specName, 'down')}
-                                className="hover:text-slate-900 p-0.5"
-                                title="Move specification down in order"
-                              >
-                                <ArrowDown className="w-3.5 h-3.5" />
-                              </button>
                               <button
                                 onClick={() => handleStartInlineEdit(product, specName)}
                                 className="flex items-center gap-1 hover:text-slate-900 font-medium"

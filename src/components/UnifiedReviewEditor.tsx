@@ -50,6 +50,7 @@ import {
 import { tsvToMarkdownTable, tsvToHtmlTable, dataURLtoFile } from '../utils/upnoteParser';
 import { parseHtmlReviewFile } from '../utils/htmlReviewParser';
 import { getCleanProductDisplayName, sortProductsByName } from '../utils/productUtils';
+import { isAppSchemeUrl, openAppScheme, autoLinkUrls } from '../utils/formatHtml';
 
 interface UnifiedReviewEditorProps {
   isOpen: boolean;
@@ -100,7 +101,7 @@ function markdownToEditableHtml(body: string): string {
     /<\/?(p|div|h[1-6]|table|ul|ol|li|img|figure|blockquote|span|b|i|u|strong|em|mark|del)[\s>]/i.test(body) ||
     (body.includes('<') && body.includes('>') && (body.includes('</') || body.includes('/>')))
   ) {
-    return body;
+    return autoLinkUrls(body);
   }
 
   let html = body;
@@ -170,7 +171,7 @@ function markdownToEditableHtml(body: string): string {
     })
     .join('');
 
-  return html || '<p><br></p>';
+  return autoLinkUrls(html || '<p><br></p>');
 }
 
 function convertMarkdownTableLinesToHtml(tableLines: string[]): string {
@@ -1356,6 +1357,7 @@ export const UnifiedReviewEditor: React.FC<UnifiedReviewEditorProps> = ({
     // Clean body HTML: replace any remaining base64 src attributes with clean reference to prevent saving megabytes of base64 text into review.body
     let cleanSavedBody = editorRef.current ? editorRef.current.innerHTML : htmlContent;
     cleanSavedBody = cleanSavedBody.replace(/src="data:image\/[^"]+"/gi, 'src=""');
+    cleanSavedBody = autoLinkUrls(cleanSavedBody);
 
     try {
       await onSave({
@@ -1966,8 +1968,18 @@ export const UnifiedReviewEditor: React.FC<UnifiedReviewEditorProps> = ({
             onSelect={saveSelection}
             onBlur={saveSelection}
             onFocus={saveSelection}
+            onClick={(e) => {
+              const anchor = (e.target as HTMLElement).closest('a');
+              if (anchor) {
+                const href = anchor.getAttribute('href');
+                if (href && isAppSchemeUrl(href)) {
+                  e.stopPropagation();
+                  openAppScheme(href);
+                }
+              }
+            }}
             data-placeholder="Start writing your detailed review... Format headings, add comparison tables, and paste photos directly inline."
-            className="flex-1 outline-none text-slate-800 text-base sm:text-lg leading-relaxed space-y-4 focus:ring-0 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none prose prose-slate max-w-none overflow-x-auto break-words min-w-0"
+            className="flex-1 outline-none text-slate-800 text-base sm:text-lg leading-relaxed space-y-4 focus:ring-0 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none prose prose-slate max-w-none overflow-x-auto break-words min-w-0 [&_a]:text-blue-600 [&_a]:underline [&_a]:hover:text-blue-800 [&_a]:cursor-pointer [&_a]:font-medium"
             style={{ minHeight: '450px' }}
           />
         </div>

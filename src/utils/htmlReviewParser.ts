@@ -3,6 +3,7 @@ import { saveMediaBlob } from '../lib/indexedDbMedia';
 import { registerActiveObjectUrl } from './imageCompressor';
 import { dataURLtoFile } from './upnoteParser';
 import { getCleanProductDisplayName } from './productUtils';
+import { isAppSchemeUrl, autoLinkUrls } from './formatHtml';
 
 export interface ParsedHtmlReview {
   title: string;
@@ -295,29 +296,38 @@ export async function parseHtmlContent(
     pre.className = 'overflow-x-auto p-3 my-3 bg-slate-900 text-slate-100 rounded-xl text-xs font-mono';
   });
 
-  // 9. Process Links: ensure target="_blank", rel="noopener noreferrer", and clean styling
+  // 9. Process Links: ensure target="_top" for app schemes, target="_blank" for web, and blue styling
   mainContent.querySelectorAll('a').forEach((a) => {
-    a.setAttribute('target', '_blank');
-    a.setAttribute('rel', 'noopener noreferrer');
     const href = a.getAttribute('href') || '';
-    const isYouTube = href.includes('youtube.com') || href.includes('youtu.be');
-    if (isYouTube) {
+    const isApp = isAppSchemeUrl(href);
+    if (isApp) {
+      a.setAttribute('target', '_top');
+      a.removeAttribute('rel');
       a.className =
-        'inline-flex items-center gap-1.5 px-2 py-0.5 my-0.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200/90 shadow-2xs font-mono break-all cursor-pointer align-baseline';
+        'inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 underline font-medium hover:underline transition-colors break-all cursor-pointer align-baseline';
     } else {
-      a.className =
-        'inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 underline font-medium hover:underline transition-colors break-all cursor-pointer align-baseline';
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      const isYouTube = href.includes('youtube.com') || href.includes('youtu.be');
+      if (isYouTube) {
+        a.className =
+          'inline-flex items-center gap-1.5 px-2 py-0.5 my-0.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200/90 shadow-2xs font-mono break-all cursor-pointer align-baseline';
+      } else {
+        a.className =
+          'inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 underline font-medium hover:underline transition-colors break-all cursor-pointer align-baseline';
+      }
     }
   });
 
-  const finalBodyHtml = mainContent.innerHTML.trim();
+  const rawBodyHtml = mainContent.innerHTML.trim();
+  const finalBodyHtml = autoLinkUrls(rawBodyHtml);
   const plainText = mainContent.textContent || '';
   const words = plainText.trim().split(/\s+/).filter(Boolean);
   const paragraphs = Array.from(mainContent.querySelectorAll('p, div, h1, h2, h3, li')).filter(
     (el) => (el.textContent || '').trim().length > 0
   );
 
-  // 9. Match with Product
+  // 10. Match with Product
   const matched = detectMatchingProduct(title, plainText, existingProducts);
 
   return {

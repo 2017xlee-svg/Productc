@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for hierarchical slot-priority specification ordering across Compare Module, Smart Add Module, and Smart Product creation.",
-  "updatedAt":  "2026-10-23T11:54:32.334590169Z",
+  "summary":  "Implementation plan for replacing raw textareas and split preview boxes with unified inline WYSIWYG rich-text HTML editors across Product Overview, Edit Specification modal, Add Specification modal, Inline Spec editing in Product Workspace, and Smart Add Product. All Markdown syntax is eliminated in favor of direct HTML editing.",
+  "updatedAt":  "2026-10-24T12:01:14.682268705Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

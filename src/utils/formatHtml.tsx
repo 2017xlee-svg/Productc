@@ -26,11 +26,115 @@ export function formatSpecificationDetails(rawText?: string): string {
   // Handle start of string dashes: "- Item" -> "• Item"
   formatted = formatted.replace(/^-\s+/gm, '• ');
 
-  // 5. Sanitize any potentially dangerous tags (scripts/iframes)
+  // 5. Convert markdown links [Label](url)
+  formatted = formatted.replace(
+    /\[(.*?)\]\(((?:https?|upnote|marginnote\w*|obsidian|notion|craftdocs|bear|things|onenote|goodnotes|notability|logseq):\/\/[^\s<>'"]+[\w\/=&#?%-])\)/gi,
+    (_m, label, url) => {
+      const isApp = isAppSchemeUrl(url);
+      const targetAttr = isApp ? ' target="_top"' : ' target="_blank" rel="noopener noreferrer"';
+      return `<a href="${url}"${targetAttr} class="text-blue-600 underline hover:text-blue-800 break-all cursor-pointer font-medium">${label}</a>`;
+    }
+  );
+
+  // 6. Sanitize any potentially dangerous tags (scripts/iframes)
   formatted = formatted.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
   formatted = formatted.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
 
+  // 7. Auto-link bare URLs (including UpNote, MarginNote, Obsidian, etc. and standard web links)
+  formatted = autoLinkUrls(formatted);
+
   return formatted;
+}
+
+/**
+ * Detects whether a URL is a native app custom scheme (e.g. upnote://, marginnote4app://, obsidian://, etc.)
+ */
+export function isAppSchemeUrl(url?: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (/^javascript:/i.test(trimmed) || /^mailto:/i.test(trimmed)) return false;
+  if (/^https?:\/\//i.test(trimmed)) return false;
+  if (/^(upnote|marginnote\w*|obsidian|notion|craftdocs|bear|things|onenote|goodnotes|notability|logseq):/i.test(trimmed)) {
+    return true;
+  }
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//i.test(trimmed);
+}
+
+/**
+ * Dispatches navigation to a native app custom scheme.
+ * On mobile browsers (iOS Safari, Android Chrome) and desktop browsers,
+ * setting window.top.location.href or window.location.href prompts the OS to open the application directly.
+ */
+export function openAppScheme(url: string): void {
+  if (!url) return;
+  const cleanUrl = url.trim();
+
+  // 1. Try window.top if inside an iframe (like AI Studio preview environment)
+  try {
+    if (window.top && window.top !== window) {
+      try {
+        window.top.location.href = cleanUrl;
+        return;
+      } catch {
+        // Cross-origin iframe security can block direct window.top assignment
+      }
+    }
+  } catch {
+    // Ignore top check errors
+  }
+
+  // 2. Direct assignment on current window
+  try {
+    window.location.href = cleanUrl;
+  } catch {
+    // 3. Fallback via dynamic anchor click
+    try {
+      const a = document.createElement('a');
+      a.href = cleanUrl;
+      a.target = '_top';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      window.open(cleanUrl, '_top');
+    }
+  }
+}
+
+/**
+ * Auto-links bare URLs (including native app schemes like upnote://, marginnote4app://, obsidian://, etc.
+ * and standard web links http://, https://) in text, while avoiding double-linking already linked URLs.
+ */
+export function autoLinkUrls(text: string): string {
+  if (!text) return '';
+  const urlRegex = /\b((?:https?|upnote|marginnote\w*|obsidian|notion|craftdocs|bear|things|onenote|goodnotes|notability|logseq):\/\/[^\s<>'"`]+[\w\/=&#?%-])/gi;
+
+  const parts = text.split(/(<[^>]+>)/g);
+  let insideAnchor = false;
+
+  const converted = parts.map((part) => {
+    if (part.startsWith('<')) {
+      if (/^<a\b/i.test(part)) {
+        insideAnchor = true;
+      } else if (/^<\/a>/i.test(part)) {
+        insideAnchor = false;
+      }
+      return part;
+    }
+
+    if (insideAnchor) {
+      return part;
+    }
+
+    return part.replace(urlRegex, (url) => {
+      const isApp = isAppSchemeUrl(url);
+      const targetAttr = isApp ? ' target="_top"' : ' target="_blank" rel="noopener noreferrer"';
+      return `<a href="${url}"${targetAttr} class="text-blue-600 underline hover:text-blue-800 break-all cursor-pointer font-medium">${url}</a>`;
+    });
+  });
+
+  return converted.join('');
 }
 
 interface FormattedHtmlProps {
@@ -45,7 +149,22 @@ export const FormattedSpecHtml: React.FC<FormattedHtmlProps> = ({ content = '', 
 
   const processed = formatSpecificationDetails(content);
 
-  // Check if content contains HTML tags or if we generated <strong>/<em> tags
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (!anchor) return;
+
+    const href = anchor.getAttribute('href');
+    if (!href) return;
+
+    if (isAppSchemeUrl(href)) {
+      e.preventDefault();
+      e.stopPropagation();
+      openAppScheme(href);
+    }
+  };
+
+  // Check if content contains HTML tags or if we generated <strong>/<em>/<a> tags
   const hasHtml = /<[a-z][\s\S]*>/i.test(processed);
 
   if (hasHtml) {
@@ -53,7 +172,8 @@ export const FormattedSpecHtml: React.FC<FormattedHtmlProps> = ({ content = '', 
     const htmlWithBreaks = processed.replace(/\r?\n/g, '<br />');
     return (
       <div
-        className={`leading-relaxed break-words whitespace-pre-line [&_b]:font-bold [&_b]:text-slate-900 [&_strong]:font-bold [&_strong]:text-slate-900 [&_u]:underline [&_i]:italic [&_em]:italic [&_a]:text-indigo-600 [&_a]:underline [&_a]:hover:text-indigo-800 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 ${className}`}
+        onClick={handleContainerClick}
+        className={`leading-relaxed break-words whitespace-pre-line [&_b]:font-bold [&_b]:text-slate-900 [&_strong]:font-bold [&_strong]:text-slate-900 [&_u]:underline [&_i]:italic [&_em]:italic [&_a]:text-blue-600 [&_a]:underline [&_a]:hover:text-blue-800 [&_a]:font-medium [&_a]:break-all [&_a]:cursor-pointer [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 ${className}`}
         dangerouslySetInnerHTML={{ __html: htmlWithBreaks }}
       />
     );
@@ -62,6 +182,7 @@ export const FormattedSpecHtml: React.FC<FormattedHtmlProps> = ({ content = '', 
   // Pure text with newlines and bullet formatting
   return (
     <div
+      onClick={handleContainerClick}
       className={`leading-relaxed whitespace-pre-line break-words text-slate-800 ${className}`}
     >
       {processed}

@@ -19,6 +19,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { MarkdownContent } from './markdown-content';
 import { Attachment, Product, Specification, UserReview } from '../types';
 import { stripHtmlAndMarkdownToText } from '../utils/upnoteParser';
 import { FormattedSpecHtml } from '../utils/formatHtml';
@@ -441,7 +442,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <span>Product Overview</span>
               </h2>
               <div className="p-3.5 sm:p-4 bg-slate-50/60 rounded-xl border border-slate-200/80 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2 overflow-hidden">
-                <Markdown>{product.overview}</Markdown>
+                <MarkdownContent content={product.overview} />
               </div>
             </div>
           )}
