@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { Product, Specification, Attachment } from '../types';
 import { FormattedSpecHtml, SpecUnitBadge } from '../utils/formatHtml';
+import { HtmlWysiwygEditor } from './HtmlWysiwygEditor';
 import {
   getProductImage,
   getFallbackImage,
@@ -1530,76 +1531,13 @@ export const SmartAddProduct: React.FC<SmartAddProductProps> = ({
                                   Supports newlines, bold, italic & links
                                 </span>
                               </div>
-                              <div className="rounded-xl border border-slate-200 overflow-hidden bg-white focus-within:border-slate-800 focus-within:ring-1 focus-within:ring-slate-800 transition-all">
-                                {/* Rich Toolbar: B, I, U, S, |, Add link */}
-                                <div className="border-b border-slate-200 px-3 py-2 flex items-center gap-4 text-slate-800 text-sm bg-slate-50/70">
-                                  <button
-                                    type="button"
-                                    onClick={() => insertInlineFormatting('<b>', '</b>')}
-                                    title="Bold"
-                                    className="font-bold hover:text-indigo-600 px-1 py-0.5 rounded transition-colors cursor-pointer"
-                                  >
-                                    B
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => insertInlineFormatting('<i>', '</i>')}
-                                    title="Italic"
-                                    className="italic font-serif hover:text-indigo-600 px-1 py-0.5 rounded transition-colors cursor-pointer"
-                                  >
-                                    I
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => insertInlineFormatting('<u>', '</u>')}
-                                    title="Underline"
-                                    className="underline hover:text-indigo-600 px-1 py-0.5 rounded transition-colors font-medium cursor-pointer"
-                                  >
-                                    U
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => insertInlineFormatting('<s>', '</s>')}
-                                    title="Strikethrough"
-                                    className="line-through hover:text-indigo-600 px-1 py-0.5 rounded transition-colors font-medium cursor-pointer"
-                                  >
-                                    S
-                                  </button>
-                                  <div className="h-4 w-px bg-slate-200" />
-                                  <button
-                                    type="button"
-                                    onClick={() => insertInlineFormatting('<a href="', '">Link text</a>')}
-                                    className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-indigo-600 font-medium px-1 py-0.5 rounded transition-colors cursor-pointer"
-                                  >
-                                    <LinkIcon className="w-3.5 h-3.5" />
-                                    <span>Add link</span>
-                                  </button>
-                                </div>
-                                <textarea
-                                  id="smart-add-inline-details-textarea"
-                                  rows={3}
-                                  value={inlineDetails}
-                                  onChange={(e) => setInlineDetails(e.target.value)}
-                                  placeholder="Details, multi-line notes, or <b>Bold</b> feature..."
-                                  className="w-full p-3.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none resize-y leading-relaxed font-sans"
-                                />
-
-                                {/* Real-Time Live Render Preview */}
-                                {inlineDetails && (
-                                  <div className="border-t border-slate-100 bg-slate-50/80 p-3">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                      <Eye className="w-3 h-3 text-indigo-600" />
-                                      <span>Real-time Formatted Preview</span>
-                                    </div>
-                                    <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs">
-                                      <div className="flex items-baseline flex-wrap gap-2">
-                                        <FormattedSpecHtml content={inlineDetails} className="text-xs sm:text-sm text-slate-800" />
-                                        <SpecUnitBadge unit={inlineUnit || activeUnit} details={inlineDetails} />
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              <HtmlWysiwygEditor
+                                id="smart-add-inline-details-editor"
+                                value={inlineDetails}
+                                onChange={setInlineDetails}
+                                placeholder="Details, multi-line notes, or bold feature..."
+                                minHeight="100px"
+                              />
                             </div>
 
                             {/* Specification Pictures */}

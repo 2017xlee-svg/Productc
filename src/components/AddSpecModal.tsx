@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { X, Layers, Plus, Check, Upload, Image as ImageIcon, Trash2, Loader2, ArrowLeft, Eye } from 'lucide-react';
+import { X, Layers, Plus, Check, Upload, Loader2, ArrowLeft } from 'lucide-react';
 import { Product, Attachment } from '../types';
 import { createAttachmentFromFile, createAttachmentFromUrl } from '../utils/imageCompressor';
 import { getAttachmentDisplayUrl, createSpecPlaceholderSvg } from '../utils/imageFallback';
-import { FormattedSpecHtml } from '../utils/formatHtml';
+import { HtmlWysiwygEditor } from './HtmlWysiwygEditor';
 
 interface AddSpecModalProps {
   product: Product | null;
@@ -323,31 +323,20 @@ export const AddSpecModal: React.FC<AddSpecModalProps> = ({
             </button>
           </div>
 
-          {/* Details / Value */}
+          {/* Details / Value - Inline WYSIWYG HTML Editor */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-semibold text-slate-700">
                 Specification Value / Details *
               </label>
-              <span className="text-[10px] text-slate-400">Supports newlines, bold & links</span>
+              <span className="text-[10px] text-slate-400">WYSIWYG: Bold, underline, list & links</span>
             </div>
-            <textarea
-              rows={3}
+            <HtmlWysiwygEditor
               value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              placeholder="e.g. 7.6-inch Dynamic AMOLED 2X, or multi-line details with - Bullet points"
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:bg-white focus:border-indigo-500 outline-none leading-relaxed resize-y font-sans"
-              required
+              onChange={setDetails}
+              placeholder="e.g. 7.6-inch Dynamic AMOLED 2X, or multi-line details with bullet points"
+              minHeight="120px"
             />
-            {details && (
-              <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                  <Eye className="w-3 h-3 text-indigo-600" />
-                  <span>Real-time Preview</span>
-                </div>
-                <FormattedSpecHtml content={details} className="text-xs text-slate-800 bg-white p-2 rounded-md border border-slate-200/80" />
-              </div>
-            )}
           </div>
 
           {/* Row Order */}

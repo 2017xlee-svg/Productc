@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Attachment } from '../types';
 import { FormattedSpecHtml, SpecUnitBadge } from '../utils/formatHtml';
+import { HtmlWysiwygEditor } from './HtmlWysiwygEditor';
 import { FullscreenImageViewer } from './fullscreen-image-viewer';
 import { createAttachmentFromFile, createAttachmentFromUrl, getCachedObjectUrl } from '../utils/imageCompressor';
 import {
@@ -260,7 +261,6 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
 
   // Overview State
   const [overview, setOverview] = useState(initialData?.overview || '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Pictures State
   const [pictures, setPictures] = useState<Attachment[]>(initialData?.pictures || []);
@@ -390,39 +390,6 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
     }
   };
 
-  // Markdown formatting helper for overview
-  const insertFormatting = (prefix: string, suffix = prefix) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = overview.substring(start, end);
-    const replacement = `${prefix}${selectedText || 'text'}${suffix}`;
-    const newText = overview.substring(0, start) + replacement + overview.substring(end);
-    setOverview(newText);
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + prefix.length, end + prefix.length);
-    }, 50);
-  };
-
-  // Formatting helper for individual specification details (matching IMG_9156.png)
-  const insertSpecFormatting = (specId: string, prefix: string, suffix = prefix) => {
-    const textarea = document.getElementById(`spec-details-textarea-${specId}`) as HTMLTextAreaElement | null;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentVal = textarea.value;
-    const selectedText = currentVal.substring(start, end);
-    const replacement = `${prefix}${selectedText || ''}${suffix}`;
-    const newText = currentVal.substring(0, start) + replacement + currentVal.substring(end);
-    handleUpdateSpecField(specId, 'details', newText);
-    setTimeout(() => {
-      textarea.focus();
-      const cursorTarget = start + prefix.length + (selectedText ? selectedText.length : 0);
-      textarea.setSelectionRange(cursorTarget, cursorTarget);
-    }, 50);
-  };
 
   // File / Photo upload for product pictures (with automatic direct storage & IndexedDB persistence)
   const handleFileUpload = async (files: FileList | null) => {
@@ -1137,68 +1104,20 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
             </div>
           </div>
 
-          {/* Product Overview with Rich Formatting Toolbar (Screenshot 2) */}
+          {/* Product Overview with WYSIWYG HTML Editor */}
           <div className="space-y-1.5 pt-2">
-            <label htmlFor="product-overview-textarea" className="block text-xs font-semibold text-slate-700">
-              Product overview
-            </label>
-            <div className="rounded-xl border border-slate-200 overflow-hidden bg-white focus-within:border-slate-800 focus-within:ring-1 focus-within:ring-slate-800 transition-all">
-              {/* Toolbar */}
-              <div className="bg-slate-50 border-b border-slate-200 px-3 py-1.5 flex items-center gap-3 text-slate-700 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => insertFormatting('**', '**')}
-                  title="Bold"
-                  className="p-1 hover:text-black hover:bg-slate-200 rounded"
-                >
-                  <Bold className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertFormatting('*', '*')}
-                  title="Italic"
-                  className="p-1 hover:text-black hover:bg-slate-200 rounded"
-                >
-                  <Italic className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertFormatting('<u>', '</u>')}
-                  title="Underline"
-                  className="p-1 hover:text-black hover:bg-slate-200 rounded"
-                >
-                  <Underline className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertFormatting('~~', '~~')}
-                  title="Strikethrough"
-                  className="p-1 hover:text-black hover:bg-slate-200 rounded"
-                >
-                  <Strikethrough className="w-3.5 h-3.5" />
-                </button>
-                <div className="h-3 w-px bg-slate-300" />
-                <button
-                  type="button"
-                  onClick={() => insertFormatting('[', '](https://example.com)')}
-                  className="flex items-center gap-1 hover:text-black hover:bg-slate-200 px-1 py-0.5 rounded text-[11px]"
-                >
-                  <LinkIcon className="w-3 h-3" />
-                  <span>Add link</span>
-                </button>
-              </div>
-
-              {/* Textarea */}
-              <textarea
-                id="product-overview-textarea"
-                ref={textareaRef}
-                rows={4}
-                value={overview}
-                onChange={(e) => setOverview(e.target.value)}
-                placeholder="Summarize what the product is, who it is for, and what makes it notable..."
-                className="w-full p-3.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 outline-none resize-y leading-relaxed"
-              />
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700">
+                Product overview
+              </label>
+              <span className="text-[10px] text-slate-400">WYSIWYG: Bold, underline, list & links</span>
             </div>
+            <HtmlWysiwygEditor
+              value={overview}
+              onChange={setOverview}
+              placeholder="Summarize what the product is, who it is for, and what makes it notable..."
+              minHeight="130px"
+            />
           </div>
 
           {/* Product Pictures Upload (Screenshot 2) */}
@@ -1562,78 +1481,13 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                             Supports newlines, bold, italic & links
                           </span>
                         </div>
-                        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white focus-within:border-slate-800 focus-within:ring-1 focus-within:ring-slate-800 transition-all">
-                          {/* Rich Toolbar: B, I, U, S, |, Add link */}
-                          <div className="border-b border-slate-200 px-3 py-2 flex items-center gap-4 text-slate-800 text-sm bg-slate-50/70">
-                            <button
-                              type="button"
-                              onClick={() => insertSpecFormatting(spec.id, '<b>', '</b>')}
-                              title="Bold"
-                              className="font-bold hover:text-indigo-600 px-1 py-0.5 rounded transition-colors"
-                            >
-                              B
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => insertSpecFormatting(spec.id, '<i>', '</i>')}
-                              title="Italic"
-                              className="italic font-serif hover:text-indigo-600 px-1 py-0.5 rounded transition-colors"
-                            >
-                              I
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => insertSpecFormatting(spec.id, '<u>', '</u>')}
-                              title="Underline"
-                              className="underline hover:text-indigo-600 px-1 py-0.5 rounded transition-colors font-medium"
-                            >
-                              U
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => insertSpecFormatting(spec.id, '<s>', '</s>')}
-                              title="Strikethrough"
-                              className="line-through hover:text-indigo-600 px-1 py-0.5 rounded transition-colors font-medium"
-                            >
-                              S
-                            </button>
-                            <div className="h-4 w-px bg-slate-200" />
-                            <button
-                              type="button"
-                              onClick={() => insertSpecFormatting(spec.id, '<a href="', '">Link text</a>')}
-                              className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-indigo-600 font-medium px-1 py-0.5 rounded transition-colors"
-                            >
-                              <LinkIcon className="w-3.5 h-3.5" />
-                              <span>Add link</span>
-                            </button>
-                          </div>
-                          <textarea
-                            id={`spec-details-textarea-${spec.id}`}
-                            rows={3}
-                            value={spec.details}
-                            onChange={(e) =>
-                              handleUpdateSpecField(spec.id, 'details', e.target.value)
-                            }
-                            placeholder="Details, multi-line notes, or <b>Bold</b> feature..."
-                            className="w-full p-3.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none resize-y leading-relaxed font-sans"
-                          />
-
-                          {/* Real-Time Live Render Preview */}
-                          {spec.details && (
-                            <div className="border-t border-slate-100 bg-slate-50/80 p-3">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                <Eye className="w-3 h-3 text-indigo-600" />
-                                <span>Real-time Formatted Preview</span>
-                              </div>
-                              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs">
-                                <div className="flex items-baseline flex-wrap gap-2">
-                                  <FormattedSpecHtml content={spec.details} className="text-xs sm:text-sm text-slate-800" />
-                                  <SpecUnitBadge unit={spec.unit} details={spec.details} />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        <HtmlWysiwygEditor
+                          id={`spec-details-editor-${spec.id}`}
+                          value={spec.details}
+                          onChange={(val) => handleUpdateSpecField(spec.id, 'details', val)}
+                          placeholder="Details, multi-line notes, or bold feature..."
+                          minHeight="100px"
+                        />
                       </div>
 
                       {/* Specification Pictures Upload (IMG_9156.png) */}
